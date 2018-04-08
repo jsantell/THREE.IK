@@ -159,37 +159,41 @@ var createClass = function () {
 }();
 
 var IKJoint = function () {
-  function IKJoint(bone, parent) {
+  function IKJoint(bone) {
     classCallCheck(this, IKJoint);
     this.bone = bone;
-    this.parent = parent;
-    this.updateWorldPosition();
+    this._updateWorldPosition();
     this.distance = 0;
     this.isIKJoint = true;
   }
   createClass(IKJoint, [{
-    key: 'setDistance',
-    value: function setDistance(distance) {
+    key: '_setDistance',
+    value: function _setDistance(distance) {
       this.distance = distance;
     }
   }, {
-    key: 'updateMatrixWorld',
-    value: function updateMatrixWorld() {
+    key: '_getDistance',
+    value: function _getDistance() {
+      return this.distance;
+    }
+  }, {
+    key: '_updateMatrixWorld',
+    value: function _updateMatrixWorld() {
       this.bone.updateMatrixWorld(true);
     }
   }, {
-    key: 'getWorldPosition',
-    value: function getWorldPosition$$1() {
+    key: '_getWorldPosition',
+    value: function _getWorldPosition() {
       return this._worldPosition;
     }
   }, {
-    key: 'updateWorldPosition',
-    value: function updateWorldPosition() {
+    key: '_updateWorldPosition',
+    value: function _updateWorldPosition() {
       this._worldPosition = getWorldPosition(this.bone, new three.Vector3());
     }
   }, {
-    key: 'setWorldPosition',
-    value: function setWorldPosition(position) {
+    key: '_setWorldPosition',
+    value: function _setWorldPosition(position) {
       if ([position.x, position.y, position.z].some(function (n) {
         return Number.isNaN(n);
       })) {
@@ -198,88 +202,93 @@ var IKJoint = function () {
       this._worldPosition.copy(position);
     }
   }, {
-    key: 'applyWorldPosition',
-    value: function applyWorldPosition() {
-      this.bone.position.copy(this.getWorldPosition());
+    key: '_applyWorldPosition',
+    value: function _applyWorldPosition() {
+      this.bone.position.copy(this._getWorldPosition());
       this.bone.updateMatrix();
-      if (!this.parent) {
+      if (!this.bone.parent) {
         return;
       }
-      this.bone.applyMatrix(new three.Matrix4().getInverse(this.parent.bone.matrixWorld));
-      this.bone.updateMatrixWorld();
+      this.bone.applyMatrix(new three.Matrix4().getInverse(this.bone.parent.matrixWorld));
+      this._updateMatrixWorld();
     }
   }, {
-    key: 'getWorldDistance',
-    value: function getWorldDistance$$1(joint) {
-      return this._worldPosition.distanceTo(joint.isIKJoint ? joint.getWorldPosition() : getWorldPosition(joint, new three.Vector3()));
+    key: '_getWorldDistance',
+    value: function _getWorldDistance(joint) {
+      return this._worldPosition.distanceTo(joint.isIKJoint ? joint._getWorldPosition() : getWorldPosition(joint, new three.Vector3()));
     }
   }]);
   return IKJoint;
 }();
-var IK = function () {
-  function IK(scene, bones, target) {
-    classCallCheck(this, IK);
-    bones[0].updateMatrixWorld(true);
-    this.joints = [];
-    for (var i = 0; i < bones.length; i++) {
-      this.joints.push(new IKJoint(bones[i], this.joints[i - 1]));
-    }
-    for (var _i = 0; _i < this.joints.length - 1; _i++) {
-      var distance = this.joints[_i].getWorldDistance(this.joints[_i + 1]);
-      if (distance === 0) {
-        throw new Error('bone with 0 distance between adjacent bone found');
-      }
-      this.joints[_i].setDistance(distance);
-    }
-    this.totalLengths = this.joints.reduce(function (sum, joint) {
-      return joint.distance + sum;
-    }, 0);
-    this.root = this.joints[0];
-    this.effector = this.joints[this.joints.length - 1];
-    this.origin = new three.Vector3().copy(this.root.getWorldPosition());
+
+var IKChain = function () {
+  function IKChain() {
+    classCallCheck(this, IKChain);
+    this.isIKChain = true;
+    this.totalLengths = 0;
+    this.root = null;
+    this.effector = null;
+    this.origin = null;
     this.iterations = 100;
     this.tolerance = 0.01;
-    this.target = target;
   }
-  createClass(IK, [{
+  createClass(IKChain, [{
+    key: 'add',
+    value: function add(connection) {
+      var _ref = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {},
+          target = _ref.target;
+      if (!connection.isIKJoint && !connection.isIKChain) {
+        throw new Error('Invalid connection in an IKChain. Must be an IKJoint or an IKChain.');
+      }
+      this.joints = this.joints || [];
+      this.joints.push(connection);
+      if (this.joints.length === 1) {
+        this.root = this.joints[0];
+        this.origin = new three.Vector3().copy(this.root._getWorldPosition());
+      }
+      else {
+          var distance = this.joints[this.joints.length - 2]._getWorldDistance(connection);
+          if (distance === 0) {
+            throw new Error('bone with 0 distance between adjacent bone found');
+          }
+          this.joints[this.joints.length - 2]._setDistance(distance);
+          this.totalLengths += distance;
+        }
+      if (target) {
+        this.effector = connection;
+        this.target = target;
+      }
+    }
+  }, {
     key: 'update',
     value: function update() {
-      this.root.updateMatrixWorld();
+      if (!this.root || !this.target) {
+        throw new Error('IKChain must have both a base and an IKJoint with a target to solve');
+      }
+      this.root._updateMatrixWorld();
       this.target.updateMatrixWorld();
+      this._targetPosition = new three.Vector3().setFromMatrixPosition(this.target.matrixWorld);
       this.joints.forEach(function (joint) {
-        return joint.updateWorldPosition();
+        return joint._updateWorldPosition();
       });
-      if (this.totalLengths < this.root.getWorldDistance(this.target)) {
+      if (this.totalLengths < this.root._getWorldDistance(this.target)) {
         this._solveOutOfRange();
       } else {
         this._solveInRange();
       }
       this.joints.forEach(function (joint) {
-        return joint.applyWorldPosition();
+        return joint._applyWorldPosition();
       });
     }
   }, {
     key: '_solveInRange',
     value: function _solveInRange() {
-      var targetPosition = new three.Vector3().setFromMatrixPosition(this.target.matrixWorld);
       var iteration = 1;
-      var difference = this.effector.getWorldDistance(this.target);
+      var difference = this.effector._getWorldDistance(this.target);
       while (difference > this.tolerance) {
-        difference = this.effector.getWorldDistance(this.target);
-        this.effector.setWorldPosition(targetPosition);
-        for (var i = this.joints.length - 1; i > 0; i--) {
-          var joint = this.joints[i];
-          var prevJoint = this.joints[i - 1];
-          var direction = new three.Vector3().subVectors(prevJoint.getWorldPosition(), joint.getWorldPosition()).normalize();
-          prevJoint.setWorldPosition(direction.multiplyScalar(joint.distance).add(joint.getWorldPosition()));
-        }
-        this.root.setWorldPosition(this.origin);
-        for (var _i2 = 0; _i2 < this.joints.length - 1; _i2++) {
-          var _joint = this.joints[_i2];
-          var nextJoint = this.joints[_i2 + 1];
-          var _direction = new three.Vector3().subVectors(nextJoint.getWorldPosition(), _joint.getWorldPosition()).normalize();
-          nextJoint.setWorldPosition(_direction.multiplyScalar(nextJoint.distance).add(_joint.getWorldPosition()));
-        }
+        difference = this.effector._getWorldDistance(this.target);
+        this._backward();
+        this._forward();
         iteration++;
         if (iteration > this.iterations) {
           break;
@@ -289,22 +298,71 @@ var IK = function () {
   }, {
     key: '_solveOutOfRange',
     value: function _solveOutOfRange() {
-      var targetPosition = new three.Vector3().setFromMatrixPosition(this.target.matrixWorld);
       for (var i = 0; i < this.joints.length - 1; i++) {
         var joint = this.joints[i];
         var nextJoint = this.joints[i + 1];
-        var r = joint.getWorldPosition().distanceTo(targetPosition);
+        var r = joint._getWorldPosition().distanceTo(this._targetPosition);
         var lambda = joint.distance / r;
-        var pos = new three.Vector3().copy(joint.getWorldPosition());
-        var targetPos = new three.Vector3().copy(targetPosition);
+        var pos = new three.Vector3().copy(joint._getWorldPosition());
+        var targetPos = new three.Vector3().copy(this._targetPosition);
         pos.multiplyScalar(1 - lambda).add(targetPos.multiplyScalar(lambda));
-        nextJoint.setWorldPosition(pos);
+        nextJoint._setWorldPosition(pos);
       }
+    }
+  }, {
+    key: '_backward',
+    value: function _backward() {
+      this.effector._setWorldPosition(this._targetPosition);
+      for (var i = this.joints.length - 1; i > 0; i--) {
+        var joint = this.joints[i];
+        var prevJoint = this.joints[i - 1];
+        var direction = new three.Vector3().subVectors(prevJoint._getWorldPosition(), joint._getWorldPosition()).normalize();
+        prevJoint._setWorldPosition(direction.multiplyScalar(joint.distance).add(joint._getWorldPosition()));
+      }
+    }
+  }, {
+    key: '_forward',
+    value: function _forward() {
+      this.root._setWorldPosition(this.origin);
+      for (var i = 0; i < this.joints.length - 1; i++) {
+        var joint = this.joints[i];
+        var nextJoint = this.joints[i + 1];
+        var direction = new three.Vector3().subVectors(nextJoint._getWorldPosition(), joint._getWorldPosition()).normalize();
+        nextJoint._setWorldPosition(direction.multiplyScalar(nextJoint.distance).add(joint._getWorldPosition()));
+      }
+    }
+  }]);
+  return IKChain;
+}();
+
+var IK = function () {
+  function IK() {
+    classCallCheck(this, IK);
+    this.chains = [];
+  }
+  createClass(IK, [{
+    key: 'add',
+    value: function add(chain) {
+      if (!chain.isIKChain) {
+        throw new Error('Argument is not an IKChain.');
+      }
+      this.chains.push(chain);
+    }
+  }, {
+    key: 'update',
+    value: function update() {
+      this.chains.forEach(function (c) {
+        return c.update(scene);
+      });
     }
   }]);
   return IK;
 }();
 
-return IK;
+var index = {
+  IK: IK, IKChain: IKChain, IKJoint: IKJoint
+};
+
+return index;
 
 })));

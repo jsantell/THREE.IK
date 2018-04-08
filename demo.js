@@ -25,7 +25,7 @@ class Arm extends THREE.Object3D {
                            this.geometry.skinWeights,
                            bones);
     this.skeleton = new THREE.Skeleton(bones);
-    this.mesh = new THREE.SkinnedMesh(this.geometry, new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.5, skinning: true, color: 0x0000ff }));
+    this.mesh = new THREE.SkinnedMesh(this.geometry, new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, skinning: true, color: 0x0000ff }));
     this.mesh.material.side = THREE.DoubleSide;
     this.mesh.add(bones[0]);
     this.mesh.castShadow = true;
@@ -117,8 +117,22 @@ function init() {
   scene.add(skeletonHelper);
 
   gizmo = createTransformControls(new THREE.Vector3(0.0, 3.5, 0));
-  ik = new IK(scene, arm.skeleton.bones, gizmo.target);
+  ik = createIK();
   window.addEventListener('resize', onWindowResize, false );
+}
+
+function createIK() {
+  const ik = new IK.IK();
+  const chain = new IK.IKChain();
+  for (let i = 0; i < arm.skeleton.bones.length; i++) {
+    const bone = arm.skeleton.bones[i];
+    const target = (i === arm.skeleton.bones.length - 1) ? gizmo.target : null;
+    chain.add(new IK.IKJoint(bone), { target });
+  }
+
+  ik.add(chain);
+
+  return ik;
 }
 
 function createTransformControls(position) {
