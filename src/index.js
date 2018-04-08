@@ -6,9 +6,8 @@ class IKJoint {
    * @param {THREE.Bone}
    * @param {IKJoint}
    */
-  constructor(bone, parent) {
+  constructor(bone) {
     this.bone = bone;
-    this.parent = parent;
     this.updateWorldPosition();
 
     this.distance = 0;
@@ -16,6 +15,9 @@ class IKJoint {
     this.isIKJoint = true;
   }
 
+  /**
+   * @param {THREE.Vector3}
+   */
   setDistance(distance) {
     this.distance = distance;
   }
@@ -24,6 +26,9 @@ class IKJoint {
     this.bone.updateMatrixWorld(true);
   }
 
+  /**
+   * @return {THREE.Vector3}
+   */
   getWorldPosition() {
     return this._worldPosition;
   }
@@ -44,16 +49,20 @@ class IKJoint {
     this.bone.position.copy(this.getWorldPosition());
     this.bone.updateMatrix();
 
-    if (!this.parent) {
+    if (!this.bone.parent) {
       return;
     }
-    this.bone.applyMatrix(new Matrix4().getInverse(this.parent.bone.matrixWorld));
+    this.bone.applyMatrix(new Matrix4().getInverse(this.bone.parent.matrixWorld));
 
     // Update the world matrix so the next joint can properly transform
     // with this world matrix
     this.bone.updateMatrixWorld();
   }
 
+  /**
+   * @param {IKJoint|THREE.Vector3}
+   * @return {THREE.Vector3}
+   */
   getWorldDistance(joint) {
     return this._worldPosition.distanceTo(joint.isIKJoint ? joint.getWorldPosition() : getWorldPosition(joint, new Vector3()));
   }
@@ -66,7 +75,7 @@ export default class IK {
     this.joints = [];
 
     for (let i = 0; i < bones.length; i++) {
-      this.joints.push(new IKJoint(bones[i], this.joints[i - 1]));
+      this.joints.push(new IKJoint(bones[i]));
     }
 
     for (let i = 0; i < this.joints.length - 1; i++) {
@@ -86,6 +95,8 @@ export default class IK {
     this.iterations = 100;
     this.tolerance = 0.01;
     this.target = target;
+
+
   }
 
   update() {
@@ -138,8 +149,6 @@ export default class IK {
       for (let i = 0; i < this.joints.length - 1; i++) {
         const joint = this.joints[i];
         const nextJoint = this.joints[i + 1];
-     
-        //todo
         const direction = new Vector3().subVectors(nextJoint.getWorldPosition(), joint.getWorldPosition()).normalize();
         nextJoint.setWorldPosition(direction.multiplyScalar(nextJoint.distance).add(joint.getWorldPosition()));
       }
