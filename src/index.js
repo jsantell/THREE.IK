@@ -124,32 +124,24 @@ export default class IK {
     let difference = this.effector.getWorldDistance(this.target);
     while (difference > this.tolerance) {
 
-      difference = this.joints[this.joints.length - 1].getWorldDistance(this.target);
+      difference = this.effector.getWorldDistance(this.target);
 
-      this.joints[this.joints.length - 1].setWorldPosition(targetPosition);
-      for (let i = this.joints.length - 2; i >= 0; i--) {
+      this.effector.setWorldPosition(targetPosition);
+      for (let i = this.joints.length - 1; i > 0; i--) {
         const joint = this.joints[i];
-        const nextJoint = this.joints[i + 1];
-        const r = joint.getWorldDistance(nextJoint);
-        const lambda = joint.distance / r;
-
-        const pos = new Vector3().copy(joint.getWorldPosition());
-        const nextPos = new Vector3().copy(nextJoint.getWorldPosition());
-        nextPos.multiplyScalar(1 - lambda).add(pos.multiplyScalar(lambda));
-        joint.setWorldPosition(nextPos);
+        const prevJoint = this.joints[i - 1];
+        const direction = new Vector3().subVectors(prevJoint.getWorldPosition(), joint.getWorldPosition()).normalize();
+        prevJoint.setWorldPosition(direction.multiplyScalar(joint.distance).add(joint.getWorldPosition()));
       }
 
       this.root.setWorldPosition(this.origin);
       for (let i = 0; i < this.joints.length - 1; i++) {
         const joint = this.joints[i];
         const nextJoint = this.joints[i + 1];
-        const r = joint.getWorldDistance(nextJoint);
-        const lambda = joint.distance / r;
-
-        const pos = new Vector3().copy(joint.getWorldPosition());
-        const nextPos = new Vector3().copy(nextJoint.getWorldPosition());
-        pos.multiplyScalar(1 - lambda).add(nextPos.multiplyScalar(lambda));
-        nextJoint.setWorldPosition(pos);
+     
+        //todo
+        const direction = new Vector3().subVectors(nextJoint.getWorldPosition(), joint.getWorldPosition()).normalize();
+        nextJoint.setWorldPosition(direction.multiplyScalar(nextJoint.distance).add(joint.getWorldPosition()));
       }
 
       iteration++;

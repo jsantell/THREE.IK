@@ -265,28 +265,20 @@ var IK = function () {
       var iteration = 1;
       var difference = this.effector.getWorldDistance(this.target);
       while (difference > this.tolerance) {
-        difference = this.joints[this.joints.length - 1].getWorldDistance(this.target);
-        this.joints[this.joints.length - 1].setWorldPosition(targetPosition);
-        for (var i = this.joints.length - 2; i >= 0; i--) {
+        difference = this.effector.getWorldDistance(this.target);
+        this.effector.setWorldPosition(targetPosition);
+        for (var i = this.joints.length - 1; i > 0; i--) {
           var joint = this.joints[i];
-          var nextJoint = this.joints[i + 1];
-          var r = joint.getWorldDistance(nextJoint);
-          var lambda = joint.distance / r;
-          var pos = new three.Vector3().copy(joint.getWorldPosition());
-          var nextPos = new three.Vector3().copy(nextJoint.getWorldPosition());
-          nextPos.multiplyScalar(1 - lambda).add(pos.multiplyScalar(lambda));
-          joint.setWorldPosition(nextPos);
+          var prevJoint = this.joints[i - 1];
+          var direction = new three.Vector3().subVectors(prevJoint.getWorldPosition(), joint.getWorldPosition()).normalize();
+          prevJoint.setWorldPosition(direction.multiplyScalar(joint.distance).add(joint.getWorldPosition()));
         }
         this.root.setWorldPosition(this.origin);
         for (var _i2 = 0; _i2 < this.joints.length - 1; _i2++) {
           var _joint = this.joints[_i2];
-          var _nextJoint = this.joints[_i2 + 1];
-          var _r = _joint.getWorldDistance(_nextJoint);
-          var _lambda = _joint.distance / _r;
-          var _pos = new three.Vector3().copy(_joint.getWorldPosition());
-          var _nextPos = new three.Vector3().copy(_nextJoint.getWorldPosition());
-          _pos.multiplyScalar(1 - _lambda).add(_nextPos.multiplyScalar(_lambda));
-          _nextJoint.setWorldPosition(_pos);
+          var nextJoint = this.joints[_i2 + 1];
+          var _direction = new three.Vector3().subVectors(nextJoint.getWorldPosition(), _joint.getWorldPosition()).normalize();
+          nextJoint.setWorldPosition(_direction.multiplyScalar(nextJoint.distance).add(_joint.getWorldPosition()));
         }
         iteration++;
         if (iteration > this.iterations) {
