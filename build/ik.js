@@ -164,10 +164,15 @@ var IKJoint = function () {
     this.bone = bone;
     this.parent = parent;
     this.updateWorldPosition();
-    this.distance = parent ? this.getWorldDistance(parent) : 0;
+    this.distance = 0;
     this.isIKJoint = true;
   }
   createClass(IKJoint, [{
+    key: 'setDistance',
+    value: function setDistance(distance) {
+      this.distance = distance;
+    }
+  }, {
     key: 'updateMatrixWorld',
     value: function updateMatrixWorld() {
       this.bone.updateMatrixWorld(true);
@@ -201,6 +206,7 @@ var IKJoint = function () {
         return;
       }
       this.bone.applyMatrix(new three.Matrix4().getInverse(this.parent.bone.matrixWorld));
+      this.bone.updateMatrixWorld();
     }
   }, {
     key: 'getWorldDistance',
@@ -218,88 +224,90 @@ var IK = function () {
     for (var i = 0; i < bones.length; i++) {
       this.joints.push(new IKJoint(bones[i], this.joints[i - 1]));
     }
+    for (var _i = 0; _i < this.joints.length - 1; _i++) {
+      var distance = this.joints[_i].getWorldDistance(this.joints[_i + 1]);
+      if (distance === 0) {
+        throw new Error('bone with 0 distance between adjacent bone found');
+      }
+      this.joints[_i].setDistance(distance);
+    }
     this.totalLengths = this.joints.reduce(function (sum, joint) {
       return joint.distance + sum;
     }, 0);
     this.root = this.joints[0];
+    this.effector = this.joints[this.joints.length - 1];
     this.origin = new three.Vector3().copy(this.root.getWorldPosition());
-    this.tolerance = 0.1;
+    this.iterations = 100;
+    this.tolerance = 0.01;
     this.target = target;
   }
   createClass(IK, [{
     key: 'update',
     value: function update() {
       this.root.updateMatrixWorld();
-      if (this.totalLengths < this.root.getWorldDistance(this.target)) {
-      } else {
-        this._solveInRange();
-      }
-    }
-  }, {
-    key: '_solveInRange',
-    value: function _solveInRange() {
-      var targetPosition = new three.Vector3().setFromMatrixPosition(this.target.matrixWorld);
+      this.target.updateMatrixWorld();
       this.joints.forEach(function (joint) {
         return joint.updateWorldPosition();
       });
-      var iteration = 1;
-      var difference = this.joints[this.joints.length - 1].getWorldDistance(this.target);
-      while (difference > this.tolerance) {
-        difference = this.joints[this.joints.length - 1].getWorldDistance(this.target);
-        this.joints[this.joints.length - 1].setWorldPosition(targetPosition);
-        for (var i = this.joints.length - 2; i >= 0; i--) {
-          var joint = this.joints[i];
-          var r = joint.getWorldDistance(this.joints[i + 1]);
-          var l = joint.distance / r;
-          var pos = new three.Vector3().copy(this.joints[i + 1].getWorldPosition());
-          pos.multiplyScalar(1 - l);
-          var t = new three.Vector3().copy(joint.getWorldPosition()).multiplyScalar(l);
-          pos.add(t);
-          joint.setWorldPosition(pos);
-        }
-        this.root.setWorldPosition(this.origin);
-        for (var _i = 0; _i < this.joints.length - 2; _i++) {
-          var _joint = this.joints[_i];
-          var _r = _joint.getWorldDistance(this.joints[_i + 1]);
-          var _l = _joint.distance / _r;
-          var _pos = new three.Vector3().copy(_joint.getWorldPosition());
-          _pos.multiplyScalar(1 - _l);
-          var _t = new three.Vector3().copy(this.joints[_i + 1].getWorldPosition()).multiplyScalar(_l);
-          _pos.add(_t);
-          this.joints[_i + 1].setWorldPosition(_pos);
-        }
-        iteration++;
-        if (iteration > this.iterations) {
-          break;
-        }
+      if (this.totalLengths < this.root.getWorldDistance(this.target)) {
+        this._solveOutOfRange();
+      } else {
+        this._solveInRange();
       }
       this.joints.forEach(function (joint) {
         return joint.applyWorldPosition();
       });
     }
   }, {
+    key: '_solveInRange',
+    value: function _solveInRange() {
+      var targetPosition = new three.Vector3().setFromMatrixPosition(this.target.matrixWorld);
+      var iteration = 1;
+      var difference = this.effector.getWorldDistance(this.target);
+      while (difference > this.tolerance) {
+        difference = this.joints[this.joints.length - 1].getWorldDistance(this.target);
+        this.joints[this.joints.length - 1].setWorldPosition(targetPosition);
+        for (var i = this.joints.length - 2; i >= 0; i--) {
+          var joint = this.joints[i];
+          var nextJoint = this.joints[i + 1];
+          var r = joint.getWorldDistance(nextJoint);
+          var lambda = joint.distance / r;
+          var pos = new three.Vector3().copy(joint.getWorldPosition());
+          var nextPos = new three.Vector3().copy(nextJoint.getWorldPosition());
+          nextPos.multiplyScalar(1 - lambda).add(pos.multiplyScalar(lambda));
+          joint.setWorldPosition(nextPos);
+        }
+        this.root.setWorldPosition(this.origin);
+        for (var _i2 = 0; _i2 < this.joints.length - 1; _i2++) {
+          var _joint = this.joints[_i2];
+          var _nextJoint = this.joints[_i2 + 1];
+          var _r = _joint.getWorldDistance(_nextJoint);
+          var _lambda = _joint.distance / _r;
+          var _pos = new three.Vector3().copy(_joint.getWorldPosition());
+          var _nextPos = new three.Vector3().copy(_nextJoint.getWorldPosition());
+          _pos.multiplyScalar(1 - _lambda).add(_nextPos.multiplyScalar(_lambda));
+          _nextJoint.setWorldPosition(_pos);
+        }
+        iteration++;
+        if (iteration > this.iterations) {
+          break;
+        }
+      }
+    }
+  }, {
     key: '_solveOutOfRange',
     value: function _solveOutOfRange() {
       var targetPosition = new three.Vector3().setFromMatrixPosition(this.target.matrixWorld);
-      return;
       for (var i = 0; i < this.joints.length - 1; i++) {
         var joint = this.joints[i];
-        var r = new three.Vector3().subVectors(targetPosition, joint.getWorldPosition()).length();
-        var l = joint.length / r;
-        var pos = new three.Vector3().setFromMatrixPosition(joint.bone.matrixWorld);
-        pos.multiplyScalar(1 - l);
-        var t = new three.Vector3().copy(targetPosition).multiplyScalar(l);
-        pos.add(t);
-        var worldSpace = new three.Matrix4().makeTranslation(pos.x, pos.y, pos.z);
-        var worldInverse = new three.Matrix4().getInverse(joint.bone.matrixWorld);
-        var localSpace = worldSpace.multiplyMatrices(worldSpace, worldInverse);
-        this.joints[i + 1].bone.applyMatrix(localSpace);
-        this.joints[i + 1].bone.updateMatrixWorld();
-        console.log(r, l, localSpace.elements[13], joint.getWorldPosition());
+        var nextJoint = this.joints[i + 1];
+        var r = joint.getWorldPosition().distanceTo(targetPosition);
+        var lambda = joint.distance / r;
+        var pos = new three.Vector3().copy(joint.getWorldPosition());
+        var targetPos = new three.Vector3().copy(targetPosition);
+        pos.multiplyScalar(1 - lambda).add(targetPos.multiplyScalar(lambda));
+        nextJoint.setWorldPosition(pos);
       }
-      this.joints.map(function (j) {
-        return console.log(new three.Vector3().setFromMatrixPosition(j.bone.matrixWorld));
-      });
     }
   }]);
   return IK;

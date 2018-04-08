@@ -11,9 +11,13 @@ class IKJoint {
     this.parent = parent;
     this.updateWorldPosition();
 
-    this.distance = parent ? this.getWorldDistance(parent) : 0;
+    this.distance = 0;
 
     this.isIKJoint = true;
+  }
+
+  setDistance(distance) {
+    this.distance = distance;
   }
 
   updateMatrixWorld() {
@@ -39,11 +43,15 @@ class IKJoint {
 
     this.bone.position.copy(this.getWorldPosition());
     this.bone.updateMatrix();
-    
+
     if (!this.parent) {
       return;
     }
     this.bone.applyMatrix(new Matrix4().getInverse(this.parent.bone.matrixWorld));
+
+    // Update the world matrix so the next joint can properly transform
+    // with this world matrix
+    this.bone.updateMatrixWorld();
   }
 
   getWorldDistance(joint) {
@@ -61,26 +69,39 @@ export default class IK {
       this.joints.push(new IKJoint(bones[i], this.joints[i - 1]));
     }
 
+    for (let i = 0; i < this.joints.length - 1; i++) {
+      const distance = this.joints[i].getWorldDistance(this.joints[i + 1])
+      if (distance === 0) {
+        throw new Error('bone with 0 distance between adjacent bone found');
+      };
+      this.joints[i].setDistance(distance);
+    }
+
     this.totalLengths = this.joints.reduce((sum, joint) => joint.distance + sum, 0);
 
     this.root = this.joints[0];
+    this.effector = this.joints[this.joints.length - 1];
     this.origin = new Vector3().copy(this.root.getWorldPosition());
 
-    this.tolerance = 0.1;
+    this.iterations = 100;
+    this.tolerance = 0.01;
     this.target = target;
   }
 
   update() {
     this.root.updateMatrixWorld();
+    this.target.updateMatrixWorld();
 
     // this.joints.map(j => console.log(new Vector3().setFromMatrixPosition(j.bone.matrixWorld)));
 
+    this.joints.forEach(joint => joint.updateWorldPosition());
     // If target is out of reach
     if (this.totalLengths < this.root.getWorldDistance(this.target)) {
-      //this._solveOutOfRange();
+      this._solveOutOfRange();
     } else {
       this._solveInRange();
     }
+    this.joints.forEach(joint => joint.applyWorldPosition());
   }
 
   /*
@@ -98,53 +119,37 @@ export default class IK {
     const targetPosition = new Vector3().setFromMatrixPosition(this.target.matrixWorld);
 
     // Update world position for all joints
-    this.joints.forEach(joint => joint.updateWorldPosition());
 
     let iteration = 1;
-    let difference = this.joints[this.joints.length - 1].getWorldDistance(this.target);
+    let difference = this.effector.getWorldDistance(this.target);
     while (difference > this.tolerance) {
 
       difference = this.joints[this.joints.length - 1].getWorldDistance(this.target);
 
-      /* backwards */
-      /*
-       * self.joints[self.n] = self.target;
-        for i = self.n - 1, 1, -1 do
-              local r = (self.joints[i+1] - self.joints[i]);
-            local l = self.lengths[i] / r.magnitude;
-                -- find new joint position
-                      local pos = (1 - l) * self.joints[i+1] + l * self.joints[i];
-                    self.joints[i] = pos;
-                      end;
-      */
       this.joints[this.joints.length - 1].setWorldPosition(targetPosition);
       for (let i = this.joints.length - 2; i >= 0; i--) {
-        let joint = this.joints[i];
-        let r = joint.getWorldDistance(this.joints[i+1]);
-        let l = joint.distance / r;
-        
-        //(1 - l) * self.joints[i] + l * self.target;
-        let pos = new Vector3().copy(this.joints[i + 1].getWorldPosition());
-        pos.multiplyScalar(1 - l);
-        let t = new Vector3().copy(joint.getWorldPosition()).multiplyScalar(l);
-        pos.add(t);
+        const joint = this.joints[i];
+        const nextJoint = this.joints[i + 1];
+        const r = joint.getWorldDistance(nextJoint);
+        const lambda = joint.distance / r;
 
-        joint.setWorldPosition(pos);
+        const pos = new Vector3().copy(joint.getWorldPosition());
+        const nextPos = new Vector3().copy(nextJoint.getWorldPosition());
+        nextPos.multiplyScalar(1 - lambda).add(pos.multiplyScalar(lambda));
+        joint.setWorldPosition(nextPos);
       }
-      
-      this.root.setWorldPosition(this.origin);
-      for (let i = 0; i < this.joints.length - 2; i++) {
-        let joint = this.joints[i];
-        let r = joint.getWorldDistance(this.joints[i+1]);
-        let l = joint.distance / r;
-        
-        //(1 - l) * self.joints[i] + l * self.target;
-        let pos = new Vector3().copy(joint.getWorldPosition());
-        pos.multiplyScalar(1 - l);
-        let t = new Vector3().copy(this.joints[i + 1].getWorldPosition()).multiplyScalar(l);
-        pos.add(t);
 
-        this.joints[i + 1].setWorldPosition(pos);
+      this.root.setWorldPosition(this.origin);
+      for (let i = 0; i < this.joints.length - 1; i++) {
+        const joint = this.joints[i];
+        const nextJoint = this.joints[i + 1];
+        const r = joint.getWorldDistance(nextJoint);
+        const lambda = joint.distance / r;
+
+        const pos = new Vector3().copy(joint.getWorldPosition());
+        const nextPos = new Vector3().copy(nextJoint.getWorldPosition());
+        pos.multiplyScalar(1 - lambda).add(nextPos.multiplyScalar(lambda));
+        nextJoint.setWorldPosition(pos);
       }
 
       iteration++;
@@ -153,35 +158,20 @@ export default class IK {
       }
     }
 
-    this.joints.forEach(joint => joint.applyWorldPosition());
-      //debugger;
   }
 
   _solveOutOfRange() {
     const targetPosition = new Vector3().setFromMatrixPosition(this.target.matrixWorld);
-      return;
-      for (let i = 0; i < this.joints.length - 1; i++) {
-        const joint = this.joints[i];
-        const nextJoint = this.joints[i + 1];
-        let r = new Vector3().subVectors(targetPosition, joint.getWorldPosition()).length();
-        let l = joint.length / r;
+    for (let i = 0; i < this.joints.length - 1; i++) {
+      const joint = this.joints[i];
+      const nextJoint = this.joints[i + 1];
+      const r = joint.getWorldPosition().distanceTo(targetPosition);
+      const lambda = joint.distance / r;
 
-        //(1 - l) * self.joints[i] + l * self.target;
-        let pos = new Vector3().setFromMatrixPosition(joint.bone.matrixWorld);
-        pos.multiplyScalar(1 - l);
-
-        let t = new Vector3().copy(targetPosition).multiplyScalar(l);
-        pos.add(t);
-
-        let worldSpace = new Matrix4().makeTranslation(pos.x, pos.y, pos.z);
-        let worldInverse = new Matrix4().getInverse(joint.bone.matrixWorld);
-
-        let localSpace = worldSpace.multiplyMatrices(worldSpace, worldInverse);
-        //this.joints[i + 1].bone.position.set(localSpace.elements[12],localSpace.elements[13], localSpace.elements[14]);
-        this.joints[i + 1].bone.applyMatrix(localSpace);
-        this.joints[i + 1].bone.updateMatrixWorld();
-        console.log(r, l, localSpace.elements[13], joint.getWorldPosition());
-      }
-      this.joints.map(j => console.log(new Vector3().setFromMatrixPosition(j.bone.matrixWorld)));
+      const pos = new Vector3().copy(joint.getWorldPosition());
+      const targetPos = new Vector3().copy(targetPosition);
+      pos.multiplyScalar(1 - lambda).add(targetPos.multiplyScalar(lambda));
+      nextJoint.setWorldPosition(pos);
+    }
   }
 }

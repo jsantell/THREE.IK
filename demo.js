@@ -25,9 +25,10 @@ class Arm extends THREE.Object3D {
                            this.geometry.skinWeights,
                            bones);
     this.skeleton = new THREE.Skeleton(bones);
-    this.mesh = new THREE.SkinnedMesh(this.geometry, new THREE.MeshBasicMaterial({ skinning: true, color: 0x0000ff }));
+    this.mesh = new THREE.SkinnedMesh(this.geometry, new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.5, skinning: true, color: 0x0000ff }));
     this.mesh.material.side = THREE.DoubleSide;
     this.mesh.add(bones[0]);
+    this.mesh.castShadow = true;
     this.mesh.bind(this.skeleton);
     this.mesh.frustumCulled = false;
     this.add(this.mesh);
@@ -45,8 +46,8 @@ class Arm extends THREE.Object3D {
       for (let i = 0; i < points; i++) {
         const theta = Math.PI * 2 * i / points;
         vertices.push(new THREE.Vector3(Math.sin(theta) * radius, j*heightPerRing, Math.cos(theta) * radius));
-        skinIndices.push(new THREE.Vector4(j, j-1, j-2, j-3));
-        skinWeights.push(new THREE.Vector4(0.45, 0.25, 0.2, 0.1));
+        skinIndices.push(new THREE.Vector4(j));
+        skinWeights.push(new THREE.Vector4(1, 0, 0, 0));
       }
       if (j !== 0) {
         for (let i = 0; i < points; i++) {
@@ -76,51 +77,46 @@ function init() {
   container = document.createElement( 'div' );
   document.body.appendChild( container );
 
-  camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.01, 500);
-  camera.position.set(0, 0, 3);
-  controls = new THREE.OrbitControls(camera);
-  controls.update();
-
   scene = new THREE.Scene();
   scene.background = new THREE.Color( 0xeeeeee );
 
-  light = new THREE.HemisphereLight( 0xffffff, 0x444444 );
-  light.position.set( 0, 200, 0 );
-  scene.add( light );
+  camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 0.01, 500);
+  camera.position.set(10, 5, 6);
+  camera.lookAt(scene.position);
+  controls = new THREE.OrbitControls(camera);
+  controls.update();
 
+  scene.add(new THREE.AmbientLight(0xffffff, 1));
   light = new THREE.DirectionalLight( 0xffffff );
-  light.position.set( 0, 200, 100 );
+  light.position.set( 10, 10, 0 );
   light.castShadow = true;
-  light.shadow.camera.top = 180;
-  light.shadow.camera.bottom = -100;
-  light.shadow.camera.left = -120;
-  light.shadow.camera.right = 120;
   scene.add( light );
 
   // ground
-  var mesh = new THREE.Mesh( new THREE.PlaneGeometry( 2000, 2000 ), new THREE.MeshPhongMaterial( { color: 0x555555 } ) );
+  var mesh = new THREE.Mesh( new THREE.PlaneGeometry( 100, 100 ), new THREE.MeshPhongMaterial( { color: 0x555555 } ) );
   mesh.rotation.x = - Math.PI / 2;
   mesh.receiveShadow = true;
   scene.add( mesh );
 
   var grid = new THREE.GridHelper( 20, 20, 0x000000, 0x000000 );
   grid.position.y = 0.001;
-  grid.material.opacity = 0.5;
+  grid.material.opacity = 1;
   scene.add( grid );
 
   renderer = new THREE.WebGLRenderer();
   renderer.setPixelRatio( window.devicePixelRatio );
   renderer.setSize( window.innerWidth, window.innerHeight );
   renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.appendChild( renderer.domElement );
 
-  arm = new Arm(4, 0.5, 10, 0.5);
+  arm = new Arm(8, 0.1, 20, 0.2);
   skeletonHelper = new THREE.SkeletonHelper(arm);
   skeletonHelper.material.linewidth = 10;
   scene.add(arm);
   scene.add(skeletonHelper);
 
-  gizmo = createTransformControls(new THREE.Vector3(2.0, 4.0, 0));
+  gizmo = createTransformControls(new THREE.Vector3(0.0, 3.5, 0));
   ik = new IK(scene, arm.skeleton.bones, gizmo.target);
   window.addEventListener('resize', onWindowResize, false );
 }
