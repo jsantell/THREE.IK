@@ -15,9 +15,28 @@ class IKJoint {
 
     this.distance = 0;
 
+    this._isSubBase = false;
+    this._subBasePositions = null;
     this.isIKJoint = true;
   }
 
+  isSubBase() {
+    return this._isSubBase;
+  }
+
+  _setIsSubBase() {
+    this._isSubBase = true;
+    this._subBasePositions = [];
+  }
+
+  /**
+   * Consumes the stored sub base positions and apply it as this
+   * joint's world position, clearing the sub base positions.
+   */
+  _applySubBasePositions() {
+    getCentroid(this._subBasePositions, this._worldPosition);
+    this._subBasePositions.length = 0;
+  }
   /**
    * Set the distance.
    * @private
@@ -58,7 +77,6 @@ class IKJoint {
   }
 
   _applyWorldPosition() {
-
     this.bone.position.copy(this._getWorldPosition());
     this.bone.updateMatrix();
 

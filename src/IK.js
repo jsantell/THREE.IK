@@ -12,6 +12,14 @@ class IK {
    */
   constructor() {
     this.chains = [];
+    this._needsRecalculated = true;
+
+    /**
+     * An array of root chains for this IK system, each containing
+     * an array of all subchains, including the root chain, for that
+     * root chain, in descending-depth order.
+     */
+    this._orderedChains = null;
   }
 
   add(chain) {
@@ -22,8 +30,52 @@ class IK {
     this.chains.push(chain);
   }
 
+  recalculate() {
+    this._orderedChains = [];
+
+    for (let rootChain of this.chains) {
+      const orderedChains = [];
+      this._orderedChains.push(orderedChains);
+
+      const chainsToSave = [rootChain];
+      while (chainsToSave.length) {
+        const chain = chainsToSave.shift();
+        orderedChains.push(chain);
+        for (let subChains of chain.chains.values()) {
+          for (let subChain of subChains) {
+            chainsToSave.push(subChain);
+          }
+        }
+      }
+    }
+  }
+
   update() {
-    this.chains.forEach(c => c.update(scene));
+    // If we don't have a depth-sorted array of chains, generate it.
+    // This is from the first `update()` call after creating.
+    if (!this._orderedChains) {
+      this.recalculate();
+    }
+
+    for (let subChains of this._orderedChains) {
+      for (let i = subChains.length - 1; i >= 0; i--) {
+        subChains[i]._updateJointWorldPositions();
+      }
+
+      // Run the chain's backward step starting with the deepest chains.
+      for (let i = subChains.length - 1; i >= 0; i--) {
+        subChains[i]._backward();
+      }
+
+      // Run the chain's forward step starting with the root chain.
+      for (let i = 0; i < subChains.length; i++) {
+        subChains[i]._forward();
+      }
+
+      for (let i = 0; i < subChains.length; i++) {
+        subChains[i]._applyJointWorldPositions();
+      }
+    }
   }
 }
 

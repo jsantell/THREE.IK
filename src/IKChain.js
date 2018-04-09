@@ -1,5 +1,13 @@
-import { Matrix4, Vector3, Quaternion } from 'three';
+import { Matrix4, Vector3 } from 'three';
 import IKJoint from './IKJoint.js';
+
+class IKChainConnection {
+  constructor(chain, index) {
+    this.chain = chain;
+    this.index = index;
+  }
+}
+
 
 /**
  * Class representing IK
@@ -11,14 +19,19 @@ class IKChain {
   constructor() {
     this.isIKChain = true;
     this.totalLengths = 0;
-    this.root = null;
+    this.base = null;
     this.effector = null;
+    this.effectorIndex = null;
+    this.chains = new Map();
 
-    /* THREE.Vector3 world position of root node */
+    /* THREE.Vector3 world position of base node */
     this.origin = null;
 
     this.iterations = 100;
     this.tolerance = 0.01;
+
+    this._depth = -1;
+    this._targetPosition = new Vector3();
   }
 
   /**
@@ -28,23 +41,32 @@ class IKChain {
    * @param {THREE.Object3D} [config.target]
    */
 
-  add(connection, { target, index } = {}) {
-    if (!connection.isIKJoint && !connection.isIKChain) {
-      throw new Error('Invalid connection in an IKChain. Must be an IKJoint or an IKChain.');
+  add(joint, { target } = {}) {
+    if (this.effector) {
+      throw new Error('Cannot add additional joints to a chain with an end effector.');
     }
- 
-    this.joints = this.joints || [];
-    this.joints.push(connection);
 
-    // If this is the first connection, set as root.
-    if (this.joints.length === 1) {
-      this.root = this.joints[0];
-      this.origin = new Vector3().copy(this.root._getWorldPosition());
+    if (!joint.isIKJoint) {
+      throw new Error('Invalid joint in an IKChain. Must be an IKJoint.');
     }
-    // Otherwise, calculate the distance for the previous connection,
+
+    this.joints = this.joints || [];
+    this.joints.push(joint);
+
+    // If this is the first joint, set as base.
+    if (this.joints.length === 1) {
+      this.base = this.joints[0];
+      this.origin = new Vector3().copy(this.base._getWorldPosition());
+    }
+    // Otherwise, calculate the distance for the previous joint,
     // and update the total length.
     else {
-      const distance = this.joints[this.joints.length - 2]._getWorldDistance(connection);
+      const previousJoint = this.joints[this.joints.length - 2];
+      previousJoint._updateMatrixWorld();
+      previousJoint._updateWorldPosition();
+      joint._updateWorldPosition();
+
+      const distance = this.joints[this.joints.length - 2]._getWorldDistance(joint);
       if (distance === 0) {
         throw new Error('bone with 0 distance between adjacent bone found');
       };
@@ -53,82 +75,165 @@ class IKChain {
     }
 
     if (target) {
-      this.effector = connection;
+      this.effector = joint;
+      this.effectorIndex = joint;
       this.target = target;
     }
   }
 
-  update() {
-    if (!this.root || !this.target) {
-      throw new Error('IKChain must have both a base and an IKJoint with a target to solve');
+  connect(chain) {
+    if (!chain.isIKChain) {
+      throw new Error('Invalid connection in an IKChain. Must be an IKChain.');
     }
 
-    this.root._updateMatrixWorld();
+    if (!chain.base.isIKJoint) {
+      throw new Error('Connecting chain does not have a base joint.');
+    }
+
+    const index = this.joints.indexOf(chain.base);
+
+    // If we're connecting to the last joint in the chain, ensure we don't
+    // already have an effector.
+    if (this.target && index === this.joints.length - 1) {
+      throw new Error('Cannot append a chain to an end joint in a chain with a target.');
+    }
+
+    if (index === -1) {
+      throw new Error('Cannot connect chain that does not have a base joint in parent chain.');
+    }
+
+    this.joints[index]._setIsSubBase();
+
+    let chains = this.chains.get(index);
+    if (!chains) {
+      chains = [];
+      this.chains.set(index, chains);
+    }
+    chains.push(chain);
+  }
+
+  update() {
+    if (!this.base) {
+      throw new Error('IKChain must have at least one joint.');
+    }
+
+    if (!this.target) {
+      throw new Error('IKChain must have a target.');
+    }
+
     this.target.updateMatrixWorld();
-    this._targetPosition = new Vector3().setFromMatrixPosition(this.target.matrixWorld);
 
     // Generate up to date world positions
-    this.joints.forEach(joint => joint._updateWorldPosition());
 
-    // If target is out of reach
-    if (this.totalLengths < this.root._getWorldDistance(this.target)) {
-      this._solveOutOfRange();
-    } else {
-      this._solveInRange();
+    this._solveInRange();
+  }
+
+  /**
+   * Update joint world positions for this chain.
+   */
+  _updateJointWorldPositions() {
+    for (let joint of this.joints) {
+      joint._updateWorldPosition();
     }
+  }
 
-    // Apply the mutated world positions into local space
-    this.joints.forEach(joint => joint._applyWorldPosition());
+  /**
+   * Apply joint world positions for this chain.
+   */
+  _applyJointWorldPositions() {
+    for (let joint of this.joints) {
+      joint._applyWorldPosition();
+    }
   }
 
   /**
    */
   _solveInRange() {
-    let iteration = 1;
+    this._backward();
+    this._forward();
+   /* let iteration = 1;
     let difference = this.effector._getWorldDistance(this.target);
     while (difference > this.tolerance) {
 
       difference = this.effector._getWorldDistance(this.target);
-      this._backward();
-      this._forward();
 
       iteration++;
       if (iteration > this.iterations) {
         break;
       }
     }
-  }
-
-  _solveOutOfRange() {
-    for (let i = 0; i < this.joints.length - 1; i++) {
-      const joint = this.joints[i];
-      const nextJoint = this.joints[i + 1];
-      const r = joint._getWorldPosition().distanceTo(this._targetPosition);
-      const lambda = joint.distance / r;
-
-      const pos = new Vector3().copy(joint._getWorldPosition());
-      const targetPos = new Vector3().copy(this._targetPosition);
-      pos.multiplyScalar(1 - lambda).add(targetPos.multiplyScalar(lambda));
-      nextJoint._setWorldPosition(pos);
-    }
+    */
   }
 
   _backward() {
-    this.effector._setWorldPosition(this._targetPosition);
+    // Copy the origin so the forward step can use before `_backward()`
+    // modifies it.
+    this.origin.copy(this.base._getWorldPosition());
+
+    // Set the effector's position to the target's position.
+
+    if (this.target) {
+      this._targetPosition.setFromMatrixPosition(this.target.matrixWorld);
+      this.effector._setWorldPosition(this._targetPosition);
+    }
+    else if (!this.joints[this.joints.length - 1].isSubBase()) {
+      // If this chain doesn't have additional chains or a target,
+      // not much to do here.
+      return;
+    }
+   
+    // Apply sub base positions for all joints except the base,
+    // as we want to possibly write to the base's sub base positions,
+    // not read from it.
+    for (let i = 1; i < this.joints.length; i++) {
+      const joint = this.joints[i];
+      if (joint.isSubBase()) {
+        joint._applySubBasePositions();
+      }
+    }
+
     for (let i = this.joints.length - 1; i > 0; i--) {
       const joint = this.joints[i];
       const prevJoint = this.joints[i - 1];
       const direction = new Vector3().subVectors(prevJoint._getWorldPosition(), joint._getWorldPosition()).normalize();
-      prevJoint._setWorldPosition(direction.multiplyScalar(joint.distance).add(joint._getWorldPosition()));
+
+      const worldPosition = direction.multiplyScalar(joint.distance).add(joint._getWorldPosition());
+
+      // If this chain's base is a sub base, set it's position in
+      // `_subBaseValues` so that the forward step of the parent chain
+      // can calculate the centroid and clear the values.
+      // @TODO Could this have an issue if a subchain `x`'s base
+      // also had its own subchain `y`, rather than subchain `x`'s
+      // parent also being subchain `y`'s parent?
+      if (prevJoint === this.base && this.base.isSubBase()) {
+        this.base._subBasePositions.push(worldPosition);
+      } else {
+        prevJoint._setWorldPosition(worldPosition);
+      }
     }
   }
 
   _forward() {
-    this.root._setWorldPosition(this.origin);
+    // If base joint is a sub base, don't reset it's position back
+    // to the origin, but leave it where the parent chain left it.
+    if (!this.base.isSubBase()) {
+      this.base._setWorldPosition(this.origin);
+    }
+
     for (let i = 0; i < this.joints.length - 1; i++) {
       const joint = this.joints[i];
       const nextJoint = this.joints[i + 1];
-      const direction = new Vector3().subVectors(nextJoint._getWorldPosition(), joint._getWorldPosition()).normalize();
+      const jointWorldPosition = joint._getWorldPosition();
+
+      // If joint is a sub base, use the `_subBaseValues` calculated from its
+      // children in the `backward` step and place this joint.
+      if (nextJoint.isSubBase()) {
+        getCentroid(nextJoint._subBaseValues, jointWorldPosition);
+      } else {
+        jointWorldPosition.copy(joint._getWorldPosition());
+      }
+
+      const direction = new Vector3().subVectors(nextJoint._getWorldPosition(), jointWorldPosition).normalize();
       nextJoint._setWorldPosition(direction.multiplyScalar(nextJoint.distance).add(joint._getWorldPosition()));
     }
   }

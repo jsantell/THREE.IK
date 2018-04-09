@@ -12,3 +12,17 @@ export const getWorldDistance = (function () {
     return a.distanceTo(b);
   };
 })();
+
+/**
+ * @param {Array<THREE.Vector3>} positions
+ * @param {THREE.Vector3} target
+ */
+export const getCentroid = (positions, target) => {
+  target.set(0, 0, 0);
+  for (let position of positions) {
+    target.add(position);
+  }
+  target.divideScalar(positions.length);
+
+  return target;
+};

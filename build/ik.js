@@ -164,9 +164,28 @@ var IKJoint = function () {
     this.bone = bone;
     this._updateWorldPosition();
     this.distance = 0;
+    this._isSubBase = false;
+    this._subBasePositions = null;
     this.isIKJoint = true;
   }
   createClass(IKJoint, [{
+    key: 'isSubBase',
+    value: function isSubBase() {
+      return this._isSubBase;
+    }
+  }, {
+    key: '_setIsSubBase',
+    value: function _setIsSubBase() {
+      this._isSubBase = true;
+      this._subBasePositions = [];
+    }
+  }, {
+    key: '_applySubBasePositions',
+    value: function _applySubBasePositions() {
+      getCentroid(this._subBasePositions, this._worldPosition);
+      this._subBasePositions.length = 0;
+    }
+  }, {
     key: '_setDistance',
     value: function _setDistance(distance) {
       this.distance = distance;
@@ -226,28 +245,39 @@ var IKChain = function () {
     classCallCheck(this, IKChain);
     this.isIKChain = true;
     this.totalLengths = 0;
-    this.root = null;
+    this.base = null;
     this.effector = null;
+    this.effectorIndex = null;
+    this.chains = new Map();
     this.origin = null;
     this.iterations = 100;
     this.tolerance = 0.01;
+    this._depth = -1;
+    this._targetPosition = new three.Vector3();
   }
   createClass(IKChain, [{
     key: 'add',
-    value: function add(connection) {
+    value: function add(joint) {
       var _ref = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {},
           target = _ref.target;
-      if (!connection.isIKJoint && !connection.isIKChain) {
-        throw new Error('Invalid connection in an IKChain. Must be an IKJoint or an IKChain.');
+      if (this.effector) {
+        throw new Error('Cannot add additional joints to a chain with an end effector.');
+      }
+      if (!joint.isIKJoint) {
+        throw new Error('Invalid joint in an IKChain. Must be an IKJoint.');
       }
       this.joints = this.joints || [];
-      this.joints.push(connection);
+      this.joints.push(joint);
       if (this.joints.length === 1) {
-        this.root = this.joints[0];
-        this.origin = new three.Vector3().copy(this.root._getWorldPosition());
+        this.base = this.joints[0];
+        this.origin = new three.Vector3().copy(this.base._getWorldPosition());
       }
       else {
-          var distance = this.joints[this.joints.length - 2]._getWorldDistance(connection);
+          var previousJoint = this.joints[this.joints.length - 2];
+          previousJoint._updateMatrixWorld();
+          previousJoint._updateWorldPosition();
+          joint._updateWorldPosition();
+          var distance = this.joints[this.joints.length - 2]._getWorldDistance(joint);
           if (distance === 0) {
             throw new Error('bone with 0 distance between adjacent bone found');
           }
@@ -255,79 +285,149 @@ var IKChain = function () {
           this.totalLengths += distance;
         }
       if (target) {
-        this.effector = connection;
+        this.effector = joint;
+        this.effectorIndex = joint;
         this.target = target;
       }
     }
   }, {
-    key: 'update',
-    value: function update() {
-      if (!this.root || !this.target) {
-        throw new Error('IKChain must have both a base and an IKJoint with a target to solve');
+    key: 'connect',
+    value: function connect(chain) {
+      if (!chain.isIKChain) {
+        throw new Error('Invalid connection in an IKChain. Must be an IKChain.');
       }
-      this.root._updateMatrixWorld();
-      this.target.updateMatrixWorld();
-      this._targetPosition = new three.Vector3().setFromMatrixPosition(this.target.matrixWorld);
-      this.joints.forEach(function (joint) {
-        return joint._updateWorldPosition();
-      });
-      if (this.totalLengths < this.root._getWorldDistance(this.target)) {
-        this._solveOutOfRange();
-      } else {
-        this._solveInRange();
+      if (!chain.base.isIKJoint) {
+        throw new Error('Connecting chain does not have a base joint.');
       }
-      this.joints.forEach(function (joint) {
-        return joint._applyWorldPosition();
-      });
+      var index = this.joints.indexOf(chain.base);
+      if (this.target && index === this.joints.length - 1) {
+        throw new Error('Cannot append a chain to an end joint in a chain with a target.');
+      }
+      if (index === -1) {
+        throw new Error('Cannot connect chain that does not have a base joint in parent chain.');
+      }
+      this.joints[index]._setIsSubBase();
+      var chains = this.chains.get(index);
+      if (!chains) {
+        chains = [];
+        this.chains.set(index, chains);
+      }
+      chains.push(chain);
     }
   }, {
-    key: '_solveInRange',
-    value: function _solveInRange() {
-      var iteration = 1;
-      var difference = this.effector._getWorldDistance(this.target);
-      while (difference > this.tolerance) {
-        difference = this.effector._getWorldDistance(this.target);
-        this._backward();
-        this._forward();
-        iteration++;
-        if (iteration > this.iterations) {
-          break;
+    key: 'update',
+    value: function update() {
+      if (!this.base) {
+        throw new Error('IKChain must have at least one joint.');
+      }
+      if (!this.target) {
+        throw new Error('IKChain must have a target.');
+      }
+      this.target.updateMatrixWorld();
+      this._solveInRange();
+    }
+  }, {
+    key: '_updateJointWorldPositions',
+    value: function _updateJointWorldPositions() {
+      var _iteratorNormalCompletion = true;
+      var _didIteratorError = false;
+      var _iteratorError = undefined;
+      try {
+        for (var _iterator = this.joints[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+          var joint = _step.value;
+          joint._updateWorldPosition();
+        }
+      } catch (err) {
+        _didIteratorError = true;
+        _iteratorError = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion && _iterator.return) {
+            _iterator.return();
+          }
+        } finally {
+          if (_didIteratorError) {
+            throw _iteratorError;
+          }
         }
       }
     }
   }, {
-    key: '_solveOutOfRange',
-    value: function _solveOutOfRange() {
-      for (var i = 0; i < this.joints.length - 1; i++) {
-        var joint = this.joints[i];
-        var nextJoint = this.joints[i + 1];
-        var r = joint._getWorldPosition().distanceTo(this._targetPosition);
-        var lambda = joint.distance / r;
-        var pos = new three.Vector3().copy(joint._getWorldPosition());
-        var targetPos = new three.Vector3().copy(this._targetPosition);
-        pos.multiplyScalar(1 - lambda).add(targetPos.multiplyScalar(lambda));
-        nextJoint._setWorldPosition(pos);
+    key: '_applyJointWorldPositions',
+    value: function _applyJointWorldPositions() {
+      var _iteratorNormalCompletion2 = true;
+      var _didIteratorError2 = false;
+      var _iteratorError2 = undefined;
+      try {
+        for (var _iterator2 = this.joints[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+          var joint = _step2.value;
+          joint._applyWorldPosition();
+        }
+      } catch (err) {
+        _didIteratorError2 = true;
+        _iteratorError2 = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion2 && _iterator2.return) {
+            _iterator2.return();
+          }
+        } finally {
+          if (_didIteratorError2) {
+            throw _iteratorError2;
+          }
+        }
       }
+    }
+  }, {
+    key: '_solveInRange',
+    value: function _solveInRange() {
+      this._backward();
+      this._forward();
     }
   }, {
     key: '_backward',
     value: function _backward() {
-      this.effector._setWorldPosition(this._targetPosition);
-      for (var i = this.joints.length - 1; i > 0; i--) {
+      this.origin.copy(this.base._getWorldPosition());
+      if (this.target) {
+        this._targetPosition.setFromMatrixPosition(this.target.matrixWorld);
+        this.effector._setWorldPosition(this._targetPosition);
+      } else if (!this.joints[this.joints.length - 1].isSubBase()) {
+        return;
+      }
+      for (var i = 1; i < this.joints.length; i++) {
         var joint = this.joints[i];
-        var prevJoint = this.joints[i - 1];
-        var direction = new three.Vector3().subVectors(prevJoint._getWorldPosition(), joint._getWorldPosition()).normalize();
-        prevJoint._setWorldPosition(direction.multiplyScalar(joint.distance).add(joint._getWorldPosition()));
+        if (joint.isSubBase()) {
+          joint._applySubBasePositions();
+        }
+      }
+      for (var _i = this.joints.length - 1; _i > 0; _i--) {
+        var _joint = this.joints[_i];
+        var prevJoint = this.joints[_i - 1];
+        var direction = new three.Vector3().subVectors(prevJoint._getWorldPosition(), _joint._getWorldPosition()).normalize();
+        var worldPosition = direction.multiplyScalar(_joint.distance).add(_joint._getWorldPosition());
+        if (prevJoint === this.base && this.base.isSubBase()) {
+          this.base._subBasePositions.push(worldPosition);
+        } else {
+          prevJoint._setWorldPosition(worldPosition);
+        }
       }
     }
   }, {
     key: '_forward',
     value: function _forward() {
-      this.root._setWorldPosition(this.origin);
+      if (!this.base.isSubBase()) {
+        this.base._setWorldPosition(this.origin);
+      }
       for (var i = 0; i < this.joints.length - 1; i++) {
         var joint = this.joints[i];
         var nextJoint = this.joints[i + 1];
-        var direction = new three.Vector3().subVectors(nextJoint._getWorldPosition(), joint._getWorldPosition()).normalize();
+        var jointWorldPosition = joint._getWorldPosition();
+        if (nextJoint.isSubBase()) {
+          getCentroid(nextJoint._subBaseValues, jointWorldPosition);
+        } else {
+          jointWorldPosition.copy(joint._getWorldPosition());
+        }
+        var direction = new three.Vector3().subVectors(nextJoint._getWorldPosition(), jointWorldPosition).normalize();
         nextJoint._setWorldPosition(direction.multiplyScalar(nextJoint.distance).add(joint._getWorldPosition()));
       }
     }
@@ -339,6 +439,8 @@ var IK = function () {
   function IK() {
     classCallCheck(this, IK);
     this.chains = [];
+    this._needsRecalculated = true;
+    this._orderedChains = null;
   }
   createClass(IK, [{
     key: 'add',
@@ -349,11 +451,120 @@ var IK = function () {
       this.chains.push(chain);
     }
   }, {
+    key: 'recalculate',
+    value: function recalculate() {
+      this._orderedChains = [];
+      var _iteratorNormalCompletion = true;
+      var _didIteratorError = false;
+      var _iteratorError = undefined;
+      try {
+        for (var _iterator = this.chains[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+          var rootChain = _step.value;
+          var orderedChains = [];
+          this._orderedChains.push(orderedChains);
+          var chainsToSave = [rootChain];
+          while (chainsToSave.length) {
+            var chain = chainsToSave.shift();
+            orderedChains.push(chain);
+            var _iteratorNormalCompletion2 = true;
+            var _didIteratorError2 = false;
+            var _iteratorError2 = undefined;
+            try {
+              for (var _iterator2 = chain.chains.values()[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+                var subChains = _step2.value;
+                var _iteratorNormalCompletion3 = true;
+                var _didIteratorError3 = false;
+                var _iteratorError3 = undefined;
+                try {
+                  for (var _iterator3 = subChains[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+                    var subChain = _step3.value;
+                    chainsToSave.push(subChain);
+                  }
+                } catch (err) {
+                  _didIteratorError3 = true;
+                  _iteratorError3 = err;
+                } finally {
+                  try {
+                    if (!_iteratorNormalCompletion3 && _iterator3.return) {
+                      _iterator3.return();
+                    }
+                  } finally {
+                    if (_didIteratorError3) {
+                      throw _iteratorError3;
+                    }
+                  }
+                }
+              }
+            } catch (err) {
+              _didIteratorError2 = true;
+              _iteratorError2 = err;
+            } finally {
+              try {
+                if (!_iteratorNormalCompletion2 && _iterator2.return) {
+                  _iterator2.return();
+                }
+              } finally {
+                if (_didIteratorError2) {
+                  throw _iteratorError2;
+                }
+              }
+            }
+          }
+        }
+      } catch (err) {
+        _didIteratorError = true;
+        _iteratorError = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion && _iterator.return) {
+            _iterator.return();
+          }
+        } finally {
+          if (_didIteratorError) {
+            throw _iteratorError;
+          }
+        }
+      }
+    }
+  }, {
     key: 'update',
     value: function update() {
-      this.chains.forEach(function (c) {
-        return c.update(scene);
-      });
+      if (!this._orderedChains) {
+        this.recalculate();
+      }
+      var _iteratorNormalCompletion4 = true;
+      var _didIteratorError4 = false;
+      var _iteratorError4 = undefined;
+      try {
+        for (var _iterator4 = this._orderedChains[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+          var subChains = _step4.value;
+          for (var i = subChains.length - 1; i >= 0; i--) {
+            subChains[i]._updateJointWorldPositions();
+          }
+          for (var _i = subChains.length - 1; _i >= 0; _i--) {
+            subChains[_i]._backward();
+          }
+          for (var _i2 = 0; _i2 < subChains.length; _i2++) {
+            subChains[_i2]._forward();
+          }
+          for (var _i3 = 0; _i3 < subChains.length; _i3++) {
+            subChains[_i3]._applyJointWorldPositions();
+          }
+        }
+      } catch (err) {
+        _didIteratorError4 = true;
+        _iteratorError4 = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion4 && _iterator4.return) {
+            _iterator4.return();
+          }
+        } finally {
+          if (_didIteratorError4) {
+            throw _iteratorError4;
+          }
+        }
+      }
     }
   }]);
   return IK;
