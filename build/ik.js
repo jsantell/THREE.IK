@@ -16,6 +16,33 @@ var getWorldDistance = function () {
     return a.distanceTo(b);
   };
 }();
+var getCentroid = function getCentroid(positions, target) {
+  target.set(0, 0, 0);
+  var _iteratorNormalCompletion = true;
+  var _didIteratorError = false;
+  var _iteratorError = undefined;
+  try {
+    for (var _iterator = positions[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+      var position = _step.value;
+      target.add(position);
+    }
+  } catch (err) {
+    _didIteratorError = true;
+    _iteratorError = err;
+  } finally {
+    try {
+      if (!_iteratorNormalCompletion && _iterator.return) {
+        _iterator.return();
+      }
+    } finally {
+      if (_didIteratorError) {
+        throw _iteratorError;
+      }
+    }
+  }
+  target.divideScalar(positions.length);
+  return target;
+};
 
 var asyncGenerator = function () {
   function AwaitValue(value) {
@@ -277,11 +304,11 @@ var IKChain = function () {
           previousJoint._updateMatrixWorld();
           previousJoint._updateWorldPosition();
           joint._updateWorldPosition();
-          var distance = this.joints[this.joints.length - 2]._getWorldDistance(joint);
+          var distance = previousJoint._getWorldDistance(joint);
           if (distance === 0) {
             throw new Error('bone with 0 distance between adjacent bone found');
           }
-          this.joints[this.joints.length - 2]._setDistance(distance);
+          joint._setDistance(distance);
           this.totalLengths += distance;
         }
       if (target) {
@@ -422,11 +449,7 @@ var IKChain = function () {
         var joint = this.joints[i];
         var nextJoint = this.joints[i + 1];
         var jointWorldPosition = joint._getWorldPosition();
-        if (nextJoint.isSubBase()) {
-          getCentroid(nextJoint._subBaseValues, jointWorldPosition);
-        } else {
-          jointWorldPosition.copy(joint._getWorldPosition());
-        }
+        jointWorldPosition.copy(joint._getWorldPosition());
         var direction = new three.Vector3().subVectors(nextJoint._getWorldPosition(), jointWorldPosition).normalize();
         nextJoint._setWorldPosition(direction.multiplyScalar(nextJoint.distance).add(joint._getWorldPosition()));
       }

@@ -1,5 +1,6 @@
 import { Matrix4, Vector3 } from 'three';
 import IKJoint from './IKJoint.js';
+import { getCentroid } from './utils.js';
 
 class IKChainConnection {
   constructor(chain, index) {
@@ -66,11 +67,11 @@ class IKChain {
       previousJoint._updateWorldPosition();
       joint._updateWorldPosition();
 
-      const distance = this.joints[this.joints.length - 2]._getWorldDistance(joint);
+      const distance = previousJoint._getWorldDistance(joint);
       if (distance === 0) {
         throw new Error('bone with 0 distance between adjacent bone found');
       };
-      this.joints[this.joints.length - 2]._setDistance(distance);
+      joint._setDistance(distance);
       this.totalLengths += distance;
     }
 
@@ -181,7 +182,7 @@ class IKChain {
       // not much to do here.
       return;
     }
-   
+
     // Apply sub base positions for all joints except the base,
     // as we want to possibly write to the base's sub base positions,
     // not read from it.
@@ -225,13 +226,7 @@ class IKChain {
       const nextJoint = this.joints[i + 1];
       const jointWorldPosition = joint._getWorldPosition();
 
-      // If joint is a sub base, use the `_subBaseValues` calculated from its
-      // children in the `backward` step and place this joint.
-      if (nextJoint.isSubBase()) {
-        getCentroid(nextJoint._subBaseValues, jointWorldPosition);
-      } else {
-        jointWorldPosition.copy(joint._getWorldPosition());
-      }
+      jointWorldPosition.copy(joint._getWorldPosition());
 
       const direction = new Vector3().subVectors(nextJoint._getWorldPosition(), jointWorldPosition).normalize();
       nextJoint._setWorldPosition(direction.multiplyScalar(nextJoint.distance).add(joint._getWorldPosition()));

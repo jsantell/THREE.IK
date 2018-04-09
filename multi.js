@@ -2,6 +2,7 @@ let container, camera, scene, renderer, light;
 let ik, rootBone;
 let skeletonHelper;
 let gizmos = [];
+let boneContainer;
 
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 const BONES = 4;
@@ -48,6 +49,8 @@ function init() {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.appendChild( renderer.domElement );
 
+  boneContainer = new THREE.Object3D();
+  scene.add(boneContainer);
   createIK();
 
   skeletonHelper = new THREE.SkeletonHelper(rootBone);
@@ -64,7 +67,7 @@ function createIK() {
   let baseChainEffector = null;
   for (let i = 0; i < 5; i++) {
     const bone = new THREE.Bone();
-    bone.position.set(0, 0.2, 0);
+    bone.position.set(0, i === 0 ? 0 : 0.2, 0);
 
     if (prevBone) {
       prevBone.add(bone);
@@ -77,7 +80,9 @@ function createIK() {
 
     if (i === 0) {
       rootBone = bone;
-      scene.add(rootBone);
+      boneContainer.add(rootBone);
+    }
+    if (i === 4) {
       baseChainEffector = joint;
     }
   }
@@ -87,7 +92,7 @@ function createIK() {
   let gizmo;
   for (let i = 0; i < 3; i++) {
     const chain = new IK.IKChain();
-    gizmo = createTransformControls(new THREE.Vector3(Math.sin((i + 1) / 3), 2.0, Math.cos((i + 1) / 3)));
+    gizmo = createTransformControls(new THREE.Vector3(Math.sin(Math.PI * (i + 1) / 3), 1.0, Math.cos(Math.PI * (i + 1) / 3)));
     gizmos.push(gizmo);
 
     // Add the joint from the base chain
@@ -97,9 +102,13 @@ function createIK() {
       const bone = new THREE.Bone();
       bone.position.set(0, 0.2, 0);
 
-      if (prevBone) {
+      if (j === 0) {
+        baseChainEffector.bone.add(bone);
+      } else if (prevBone) {
         prevBone.add(bone);
       }
+      prevBone = bone;
+
       const target = j === 4 ? gizmo.target : null;
       chain.add(new IK.IKJoint(bone), { target });
     }

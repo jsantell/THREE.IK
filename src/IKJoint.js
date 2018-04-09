@@ -1,5 +1,5 @@
 import { Matrix4, Vector3 } from 'three';
-import { getWorldPosition } from './utils.js';
+import { getCentroid, getWorldPosition } from './utils.js';
 
 /**
  * A class for a joint.
