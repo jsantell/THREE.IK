@@ -6,6 +6,14 @@ const Y_AXIS = new THREE.Vector3(0, 1, 0);
 const BONES = 4;
 const HEIGHT = 0.5;
 
+class Arrow extends THREE.Mesh {
+  constructor() {
+    const geo = new THREE.ConeBufferGeometry(0.05, 0.1, 10);
+    geo.applyMatrix(new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), Math.PI/2));
+    super(geo, new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+  }
+}
+
 class Arm extends THREE.Object3D {
   constructor(points, radius, rings, heightPerRing) {
     super();
@@ -25,7 +33,7 @@ class Arm extends THREE.Object3D {
                            this.geometry.skinWeights,
                            bones);
     this.skeleton = new THREE.Skeleton(bones);
-    this.mesh = new THREE.SkinnedMesh(this.geometry, new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, skinning: true, color: 0x0000ff }));
+    this.mesh = new THREE.SkinnedMesh(this.geometry, new THREE.MeshBasicMaterial({ transparent: true, opacity: 1, skinning: true, color: 0x0000ff }));
     this.mesh.material.side = THREE.DoubleSide;
     this.mesh.add(bones[0]);
     this.mesh.castShadow = true;
@@ -43,6 +51,7 @@ class Arm extends THREE.Object3D {
       const bone = new THREE.Bone();
       bone.position.set(0, j === 0 ? 0 : heightPerRing,0);
       bones.push(bone);
+      bone.add(new Arrow());
       for (let i = 0; i < points; i++) {
         const theta = Math.PI * 2 * i / points;
         vertices.push(new THREE.Vector3(Math.sin(theta) * radius, j*heightPerRing, Math.cos(theta) * radius));

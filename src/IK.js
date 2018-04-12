@@ -22,6 +22,11 @@ class IK {
     this._orderedChains = null;
   }
 
+  /**
+   * Adds an IKChain to the IK system.
+   *
+   * @param {IKChain} chain
+   */
   add(chain) {
     if (!chain.isIKChain) {
       throw new Error('Argument is not an IKChain.');
@@ -30,6 +35,10 @@ class IK {
     this.chains.push(chain);
   }
 
+  /**
+   * Called if there's been any changes to an IK structure.
+   * Called internally. Not sure if this should be supported externally.
+   */
   recalculate() {
     this._orderedChains = [];
 
@@ -50,6 +59,13 @@ class IK {
     }
   }
 
+  solve() {
+    return this.update.call(this);
+  }
+
+  /**
+   * Performs the IK solution and updates bones.
+   */
   update() {
     // If we don't have a depth-sorted array of chains, generate it.
     // This is from the first `update()` call after creating.
@@ -70,10 +86,6 @@ class IK {
       // Run the chain's forward step starting with the root chain.
       for (let i = 0; i < subChains.length; i++) {
         subChains[i]._forward();
-      }
-
-      for (let i = 0; i < subChains.length; i++) {
-        subChains[i]._applyJointWorldPositions();
       }
     }
   }

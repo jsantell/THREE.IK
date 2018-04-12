@@ -8,6 +8,14 @@ const Y_AXIS = new THREE.Vector3(0, 1, 0);
 const BONES = 4;
 const HEIGHT = 0.5;
 
+class Arrow extends THREE.Mesh {
+  constructor(color) {
+    const geo = new THREE.ConeBufferGeometry(0.1, 0.4, 10);
+    geo.applyMatrix(new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), Math.PI/2));
+    super(geo, new THREE.MeshBasicMaterial({ color })); 
+  }
+}
+
 init();
 animate();
 
@@ -65,9 +73,11 @@ function createIK() {
 
   let prevBone = null;
   let baseChainEffector = null;
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 25; i++) {
     const bone = new THREE.Bone();
     bone.position.set(0, i === 0 ? 0 : 0.2, 0);
+
+    bone.add(new Arrow(new THREE.Color(`hsl(${(i/25)*360}, 100%, 80%)`)));
 
     if (prevBone) {
       prevBone.add(bone);
@@ -82,7 +92,7 @@ function createIK() {
       rootBone = bone;
       boneContainer.add(rootBone);
     }
-    if (i === 4) {
+    if (i === 24) {
       baseChainEffector = joint;
     }
   }
@@ -98,8 +108,9 @@ function createIK() {
     // Add the joint from the base chain
     chain.add(baseChainEffector);
 
-    for (let j = 0; j < 5; j++) {
+    for (let j = 0; j < 10; j++) {
       const bone = new THREE.Bone();
+      bone.add(new Arrow(new THREE.Color(`hsl(${((j/10)*20) + (120 * i)}, 100%, 80%)`)));
       bone.position.set(0, 0.2, 0);
 
       if (j === 0) {
@@ -109,7 +120,7 @@ function createIK() {
       }
       prevBone = bone;
 
-      const target = j === 4 ? gizmo.target : null;
+      const target = j === 9 ? gizmo.target : null;
       chain.add(new IK.IKJoint(bone), { target });
     }
     baseChain.connect(chain);

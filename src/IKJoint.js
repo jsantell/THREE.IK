@@ -1,5 +1,7 @@
-import { Matrix4, Vector3 } from 'three';
-import { getCentroid, getWorldPosition } from './utils.js';
+import { Quaternion, Matrix4, Vector3 } from 'three';
+import { transformPoint, getCentroid, getWorldPosition, setQuaternionFromDirection } from './utils.js';
+
+const Y_AXIS = new Vector3(0, 1, 0);
 
 /**
  * A class for a joint.
@@ -11,13 +13,16 @@ class IKJoint {
   constructor(bone) {
     this.bone = bone;
 
-    this._updateWorldPosition();
-
     this.distance = 0;
 
+    this._originalDirection = new Vector3();
+    this._direction = new Vector3();
+    this._worldPosition = new Vector3();
     this._isSubBase = false;
     this._subBasePositions = null;
     this.isIKJoint = true;
+
+    this._updateWorldPosition();
   }
 
   isSubBase() {
@@ -34,16 +39,23 @@ class IKJoint {
    * joint's world position, clearing the sub base positions.
    */
   _applySubBasePositions() {
+    if (this._subBasePositions.length === 0) {
+      return;
+    }
     getCentroid(this._subBasePositions, this._worldPosition);
     this._subBasePositions.length = 0;
   }
   /**
    * Set the distance.
    * @private
-   * @param {THREE.Vector3}
+   * @param {number} distance
    */
   _setDistance(distance) {
     this.distance = distance;
+  }
+
+  _setDirection(direction) {
+    this._direction.copy(direction);
   }
 
   /**
@@ -65,28 +77,43 @@ class IKJoint {
     return this._worldPosition;
   }
 
+  _getWorldDirection(joint) {
+    return new Vector3().subVectors(this._getWorldPosition(), joint._getWorldPosition()).normalize();
+  }
+
   _updateWorldPosition() {
-    this._worldPosition = getWorldPosition(this.bone, new Vector3());
+    getWorldPosition(this.bone, this._worldPosition);
   }
 
   _setWorldPosition(position) {
-    if ([position.x,position.y,position.z].some(n => Number.isNaN(n))) {
-      debugger; throw new Error();
-    }
     this._worldPosition.copy(position);
   }
 
   _applyWorldPosition() {
-    this.bone.position.copy(this._getWorldPosition());
-    this.bone.updateMatrix();
+    let direction = new Vector3().copy(this._direction);
+    let position = new Vector3().copy(this._getWorldPosition());
 
-    if (!this.bone.parent) {
-      return;
+    const parent = this.bone.parent;
+
+    if (parent) {
+      this._updateMatrixWorld();
+      let inverseParent = new Matrix4().getInverse(this.bone.parent.matrixWorld);
+      transformPoint(position, inverseParent);
+      this.bone.position.copy(position);
+
+      this._updateMatrixWorld();
+
+      inverseParent = new Matrix4().getInverse(this.bone.parent.matrixWorld);
+      direction.transformDirection(inverseParent);
+      setQuaternionFromDirection(direction, Y_AXIS, this.bone.quaternion);
+
+    } else {
+      this.bone.position.copy(position);
     }
-    this.bone.applyMatrix(new Matrix4().getInverse(this.bone.parent.matrixWorld));
 
     // Update the world matrix so the next joint can properly transform
     // with this world matrix
+    this.bone.updateMatrix();
     this._updateMatrixWorld();
   }
 

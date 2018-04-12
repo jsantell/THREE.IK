@@ -43,6 +43,40 @@ var getCentroid = function getCentroid(positions, target) {
   target.divideScalar(positions.length);
   return target;
 };
+var setQuaternionFromDirection = function () {
+  var x = new three.Vector3();
+  var y = new three.Vector3();
+  var z = new three.Vector3();
+  var m = new three.Matrix4();
+  return function (direction, up, target) {
+    var el = m.elements;
+    z.copy(direction);
+    x.crossVectors(up, z);
+    if (x.lengthSq() === 0) {
+      if (Math.abs(up.z) === 1) {
+        z.x += 0.0001;
+      } else {
+        z.z += 0.0001;
+      }
+      z.normalize();
+      x.crossVectors(up, z);
+    }
+    x.normalize();
+    y.crossVectors(z, x);
+    el[0] = x.x;el[4] = y.x;el[8] = z.x;
+    el[1] = x.y;el[5] = y.y;el[9] = z.y;
+    el[2] = x.z;el[6] = y.z;el[10] = z.z;
+    target.setFromRotationMatrix(m);
+  };
+}();
+var transformPoint = function transformPoint(vector, m) {
+  var e = m.elements;
+  var x = vector.x * e[0] + vector.y * e[4] + vector.z * e[8] + e[12];
+  var y = vector.x * e[1] + vector.y * e[5] + vector.z * e[9] + e[13];
+  var z = vector.x * e[2] + vector.y * e[6] + vector.z * e[10] + e[14];
+  var w = vector.x * e[3] + vector.y * e[7] + vector.z * e[11] + e[15];
+  vector.set(x / w, y / w, z / w);
+};
 
 var asyncGenerator = function () {
   function AwaitValue(value) {
@@ -185,15 +219,19 @@ var createClass = function () {
   };
 }();
 
+var Y_AXIS = new three.Vector3(0, 1, 0);
 var IKJoint = function () {
   function IKJoint(bone) {
     classCallCheck(this, IKJoint);
     this.bone = bone;
-    this._updateWorldPosition();
     this.distance = 0;
+    this._originalDirection = new three.Vector3();
+    this._direction = new three.Vector3();
+    this._worldPosition = new three.Vector3();
     this._isSubBase = false;
     this._subBasePositions = null;
     this.isIKJoint = true;
+    this._updateWorldPosition();
   }
   createClass(IKJoint, [{
     key: 'isSubBase',
@@ -209,6 +247,9 @@ var IKJoint = function () {
   }, {
     key: '_applySubBasePositions',
     value: function _applySubBasePositions() {
+      if (this._subBasePositions.length === 0) {
+        return;
+      }
       getCentroid(this._subBasePositions, this._worldPosition);
       this._subBasePositions.length = 0;
     }
@@ -216,6 +257,11 @@ var IKJoint = function () {
     key: '_setDistance',
     value: function _setDistance(distance) {
       this.distance = distance;
+    }
+  }, {
+    key: '_setDirection',
+    value: function _setDirection(direction) {
+      this._direction.copy(direction);
     }
   }, {
     key: '_getDistance',
@@ -233,29 +279,39 @@ var IKJoint = function () {
       return this._worldPosition;
     }
   }, {
+    key: '_getWorldDirection',
+    value: function _getWorldDirection(joint) {
+      return new three.Vector3().subVectors(this._getWorldPosition(), joint._getWorldPosition()).normalize();
+    }
+  }, {
     key: '_updateWorldPosition',
     value: function _updateWorldPosition() {
-      this._worldPosition = getWorldPosition(this.bone, new three.Vector3());
+      getWorldPosition(this.bone, this._worldPosition);
     }
   }, {
     key: '_setWorldPosition',
     value: function _setWorldPosition(position) {
-      if ([position.x, position.y, position.z].some(function (n) {
-        return Number.isNaN(n);
-      })) {
-        debugger;throw new Error();
-      }
       this._worldPosition.copy(position);
     }
   }, {
     key: '_applyWorldPosition',
     value: function _applyWorldPosition() {
-      this.bone.position.copy(this._getWorldPosition());
-      this.bone.updateMatrix();
-      if (!this.bone.parent) {
-        return;
+      var direction = new three.Vector3().copy(this._direction);
+      var position = new three.Vector3().copy(this._getWorldPosition());
+      var parent = this.bone.parent;
+      if (parent) {
+        this._updateMatrixWorld();
+        var inverseParent = new three.Matrix4().getInverse(this.bone.parent.matrixWorld);
+        transformPoint(position, inverseParent);
+        this.bone.position.copy(position);
+        this._updateMatrixWorld();
+        inverseParent = new three.Matrix4().getInverse(this.bone.parent.matrixWorld);
+        direction.transformDirection(inverseParent);
+        setQuaternionFromDirection(direction, Y_AXIS, this.bone.quaternion);
+      } else {
+        this.bone.position.copy(position);
       }
-      this.bone.applyMatrix(new three.Matrix4().getInverse(this.bone.parent.matrixWorld));
+      this.bone.updateMatrix();
       this._updateMatrixWorld();
     }
   }, {
@@ -291,7 +347,11 @@ var IKChain = function () {
         throw new Error('Cannot add additional joints to a chain with an end effector.');
       }
       if (!joint.isIKJoint) {
-        throw new Error('Invalid joint in an IKChain. Must be an IKJoint.');
+        if (joint.isBone) {
+          joint = new IKJoint(joint);
+        } else {
+          throw new Error('Invalid joint in an IKChain. Must be an IKJoint or a THREE.Bone.');
+        }
       }
       this.joints = this.joints || [];
       this.joints.push(joint);
@@ -309,6 +369,10 @@ var IKChain = function () {
             throw new Error('bone with 0 distance between adjacent bone found');
           }
           joint._setDistance(distance);
+          joint._updateWorldPosition();
+          var direction = previousJoint._getWorldDirection(joint);
+          previousJoint._originalDirection = new three.Vector3().copy(direction);
+          joint._originalDirection = new three.Vector3().copy(direction);
           this.totalLengths += distance;
         }
       if (target) {
@@ -316,6 +380,7 @@ var IKChain = function () {
         this.effectorIndex = joint;
         this.target = target;
       }
+      return this;
     }
   }, {
     key: 'connect',
@@ -340,18 +405,7 @@ var IKChain = function () {
         this.chains.set(index, chains);
       }
       chains.push(chain);
-    }
-  }, {
-    key: 'update',
-    value: function update() {
-      if (!this.base) {
-        throw new Error('IKChain must have at least one joint.');
-      }
-      if (!this.target) {
-        throw new Error('IKChain must have a target.');
-      }
-      this.target.updateMatrixWorld();
-      this._solveInRange();
+      return this;
     }
   }, {
     key: '_updateJointWorldPositions',
@@ -380,38 +434,6 @@ var IKChain = function () {
       }
     }
   }, {
-    key: '_applyJointWorldPositions',
-    value: function _applyJointWorldPositions() {
-      var _iteratorNormalCompletion2 = true;
-      var _didIteratorError2 = false;
-      var _iteratorError2 = undefined;
-      try {
-        for (var _iterator2 = this.joints[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-          var joint = _step2.value;
-          joint._applyWorldPosition();
-        }
-      } catch (err) {
-        _didIteratorError2 = true;
-        _iteratorError2 = err;
-      } finally {
-        try {
-          if (!_iteratorNormalCompletion2 && _iterator2.return) {
-            _iterator2.return();
-          }
-        } finally {
-          if (_didIteratorError2) {
-            throw _iteratorError2;
-          }
-        }
-      }
-    }
-  }, {
-    key: '_solveInRange',
-    value: function _solveInRange() {
-      this._backward();
-      this._forward();
-    }
-  }, {
     key: '_backward',
     value: function _backward() {
       this.origin.copy(this.base._getWorldPosition());
@@ -430,7 +452,7 @@ var IKChain = function () {
       for (var _i = this.joints.length - 1; _i > 0; _i--) {
         var _joint = this.joints[_i];
         var prevJoint = this.joints[_i - 1];
-        var direction = new three.Vector3().subVectors(prevJoint._getWorldPosition(), _joint._getWorldPosition()).normalize();
+        var direction = prevJoint._getWorldDirection(_joint);
         var worldPosition = direction.multiplyScalar(_joint.distance).add(_joint._getWorldPosition());
         if (prevJoint === this.base && this.base.isSubBase()) {
           this.base._subBasePositions.push(worldPosition);
@@ -449,9 +471,19 @@ var IKChain = function () {
         var joint = this.joints[i];
         var nextJoint = this.joints[i + 1];
         var jointWorldPosition = joint._getWorldPosition();
-        jointWorldPosition.copy(joint._getWorldPosition());
-        var direction = new three.Vector3().subVectors(nextJoint._getWorldPosition(), jointWorldPosition).normalize();
-        nextJoint._setWorldPosition(direction.multiplyScalar(nextJoint.distance).add(joint._getWorldPosition()));
+        var direction = nextJoint._getWorldDirection(joint);
+        joint._setDirection(direction);
+        nextJoint._setWorldPosition(direction.multiplyScalar(nextJoint.distance).add(jointWorldPosition));
+        if (i === this.joints.length - 2 && nextJoint !== this.effector) {
+          nextJoint._setDirection(direction);
+        }
+      }
+      for (var _i2 = 0; _i2 < this.joints.length; _i2++) {
+        var _joint2 = this.joints[_i2];
+        if (this.base === _joint2 && _joint2.isSubBase()) {
+          continue;
+        }
+        _joint2._applyWorldPosition();
       }
     }
   }]);
@@ -550,6 +582,11 @@ var IK = function () {
       }
     }
   }, {
+    key: 'solve',
+    value: function solve() {
+      return this.update.call(this);
+    }
+  }, {
     key: 'update',
     value: function update() {
       if (!this._orderedChains) {
@@ -569,9 +606,6 @@ var IK = function () {
           }
           for (var _i2 = 0; _i2 < subChains.length; _i2++) {
             subChains[_i2]._forward();
-          }
-          for (var _i3 = 0; _i3 < subChains.length; _i3++) {
-            subChains[_i3]._applyJointWorldPositions();
           }
         }
       } catch (err) {
