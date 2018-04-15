@@ -13,7 +13,6 @@ export default class IKBallConstraint {
    */
   constructor(angle) {
     this.angle = angle;
-    this.angle = 45;
   }
 
   apply(joint) {
