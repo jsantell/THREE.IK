@@ -219,6 +219,32 @@ var createClass = function () {
   };
 }();
 
+var Z_AXIS = new three.Vector3(0, 0, 1);
+var DEG2RAD = three.Math.DEG2RAD;
+var RAD2DEG = three.Math.RAD2DEG;
+var IKBallConstraint = function () {
+  function IKBallConstraint(angle) {
+    classCallCheck(this, IKBallConstraint);
+    this.angle = angle;
+    this.angle = 45;
+  }
+  createClass(IKBallConstraint, [{
+    key: 'apply',
+    value: function apply(joint) {
+      var direction = new three.Vector3().copy(joint._getDirection());
+      var parentDirection = joint._localToWorldDirection(new three.Vector3().copy(Z_AXIS)).normalize();
+      var currentAngle = direction.angleTo(parentDirection) * RAD2DEG;
+      if (this.angle / 2 < currentAngle) {
+        direction.normalize();
+        var correctionAxis = new three.Vector3().crossVectors(parentDirection, direction).normalize();
+        parentDirection.applyAxisAngle(correctionAxis, this.angle * DEG2RAD * 0.5);
+        joint._setDirection(parentDirection);
+      }
+    }
+  }]);
+  return IKBallConstraint;
+}();
+
 var Y_AXIS = new three.Vector3(0, 1, 0);
 var IKJoint = function () {
   function IKJoint(bone) {
@@ -226,7 +252,7 @@ var IKJoint = function () {
         constraints = _ref.constraints;
     classCallCheck(this, IKJoint);
     this.constraints = constraints;
-    this.constraints = [{ axis: new three.Vector3(0, 1, 0), angle: 0 }];
+    this.constraints = [new IKBallConstraint(90)];
     this.bone = bone;
     this.distance = 0;
     this._originalDirection = new three.Vector3();
@@ -263,23 +289,13 @@ var IKJoint = function () {
       if (!this.constraints) {
         return;
       }
-      var direction = new three.Vector3().copy(this._direction);
-      this._worldToLocalDirection(direction);
       var _iteratorNormalCompletion = true;
       var _didIteratorError = false;
       var _iteratorError = undefined;
       try {
         for (var _iterator = this.constraints[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
           var constraint = _step.value;
-          var axis = constraint.axis;
-          var angle = constraint.angle;
-          var _direction = new three.Vector3().copy(this._direction);
-          var theta = Math.abs(angle / (57.2958 * _direction.angleTo(axis)));
-          if (theta < 1) {
-            this._setDirection(_direction.lerp(axis, theta));
-          } else {
-            this._setDirection(axis);
-          }
+          constraint.apply(this);
         }
       } catch (err) {
         _didIteratorError = true;
@@ -300,6 +316,11 @@ var IKJoint = function () {
     key: '_setDistance',
     value: function _setDistance(distance) {
       this.distance = distance;
+    }
+  }, {
+    key: '_getDirection',
+    value: function _getDirection() {
+      return this._direction;
     }
   }, {
     key: '_setDirection',
@@ -337,12 +358,22 @@ var IKJoint = function () {
       this._worldPosition.copy(position);
     }
   }, {
+    key: '_localToWorldDirection',
+    value: function _localToWorldDirection(direction) {
+      if (this.bone.parent) {
+        var parent = this.bone.parent.matrixWorld;
+        direction.transformDirection(parent);
+      }
+      return direction;
+    }
+  }, {
     key: '_worldToLocalDirection',
     value: function _worldToLocalDirection(direction) {
       if (this.bone.parent) {
         var inverseParent = new three.Matrix4().getInverse(this.bone.parent.matrixWorld);
         direction.transformDirection(inverseParent);
       }
+      return direction;
     }
   }, {
     key: '_applyWorldPosition',
@@ -523,7 +554,9 @@ var IKChain = function () {
         var jointWorldPosition = joint._getWorldPosition();
         var direction = nextJoint._getWorldDirection(joint);
         joint._setDirection(direction);
-        joint.applyConstraints();
+        if (joint.isSubBase() || joint !== this.base) {
+          joint.applyConstraints();
+        }
         direction.copy(joint._direction);
         if (!(this.base === joint && joint.isSubBase())) {
           joint._applyWorldPosition();

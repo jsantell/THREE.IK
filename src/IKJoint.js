@@ -1,5 +1,6 @@
 import { Quaternion, Matrix4, Vector3 } from 'three';
 import { transformPoint, getCentroid, getWorldPosition, setQuaternionFromDirection } from './utils.js';
+import IKBallConstraint from './IKBallConstraint.js';
 
 const Y_AXIS = new Vector3(0, 1, 0);
 
@@ -14,7 +15,7 @@ class IKJoint {
     this.constraints = constraints;
 
     this.constraints = [
-      { axis: new Vector3(0, 1, 0), angle: 0 }
+      new IKBallConstraint(90),
     ];
 
     this.bone = bone;
@@ -52,25 +53,20 @@ class IKJoint {
     this._subBasePositions.length = 0;
   }
 
+  /**
+   * ball
+   * hinge
+   * twist
+   *
+   * ball+twist?
+   */
   applyConstraints() {
     if (!this.constraints) {
       return;
     }
 
-    // Cast our world direction into local space.
-    const direction = new Vector3().copy(this._direction);
-    this._worldToLocalDirection(direction);
-
     for (let constraint of this.constraints) {
-      const axis = constraint.axis;
-      const angle = constraint.angle;
-      const direction = new Vector3().copy(this._direction);
-      const theta = Math.abs(angle / (57.2958 * direction.angleTo(axis)));
-      if (theta < 1) {
-        this._setDirection(direction.lerp(axis, theta));
-      } else {
-        this._setDirection(axis);
-      }
+      constraint.apply(this);
     }
   }
 
@@ -81,6 +77,10 @@ class IKJoint {
    */
   _setDistance(distance) {
     this.distance = distance;
+  }
+
+  _getDirection() {
+    return this._direction;
   }
 
   _setDirection(direction) {
@@ -118,11 +118,20 @@ class IKJoint {
     this._worldPosition.copy(position);
   }
 
+  _localToWorldDirection(direction) {
+    if (this.bone.parent) {
+      const parent = this.bone.parent.matrixWorld;
+      direction.transformDirection(parent);
+    }
+    return direction;
+  }
+
   _worldToLocalDirection(direction) {
     if (this.bone.parent) {
       const inverseParent = new Matrix4().getInverse(this.bone.parent.matrixWorld);
       direction.transformDirection(inverseParent);
     }
+    return direction;
   }
 
   _applyWorldPosition() {

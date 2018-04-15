@@ -190,7 +190,11 @@ class IKChain {
 
       const direction = nextJoint._getWorldDirection(joint);
       joint._setDirection(direction);
-      joint.applyConstraints();
+
+      // Apply constraints if not an root of an IK system
+      if (joint.isSubBase() || joint !== this.base) {
+        joint.applyConstraints();
+      }
       direction.copy(joint._direction);
       
       // Now apply the world position to the three.js matrices. We need
