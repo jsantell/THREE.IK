@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>ik</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <style>
+            body {
+                font-family: Monospace;
+                background-color: #000;
+                color: #fff;
+                margin: 0px;
+                overflow: hidden;
+            }
+            #info {
+                color: #fff;
+                position: absolute;
+                top: 10px;
+                width: 100%;
+                text-align: center;
+                z-index: 100;
+                display:block;
+            }
+            #info a {
+                color: #046;
+                font-weight: bold;
+            }
+        </style>
+    </head>
+
+    <body>
+        <script src="scripts/dat.gui.js"></script>
+        <script src="scripts/three.js"></script>
+        <script src="scripts/TransformControls.js"></script>
+        <script src="scripts/OrbitControls.js"></script>
+        <!--<script src="scripts/inflate.min.js"></script>
+        <script src="scripts/FBXLoader.js"></script>-->
+        <script src="scripts/IKApp.js"></script>
+        <script src="../build/ik.js"></script>
+        <script>
+
+const DISTANCE = 0.5;
+const COUNT = 5;
+
+class SingleEffectorApp extends IKApp {
+  setupGUI() {
+    this.config.constraintType = 'ball';
+    this.config.constraintAngle = 90;
+
+    this.gui.add(this.config, 'constraintType', ['none', 'ball']).onChange(this.onChange);
+    this.gui.add(this.config, 'constraintAngle', 90).min(0).max(360).step(1).onChange(this.onChange);
+  }
+
+  setupIK() {
+    this.ik = new IK.IK();
+    const chain = new IK.IKChain();
+    const constraint = new IK.IKBallConstraint(this.config.constraintAngle);
+
+    for (let i = 0; i < COUNT; i++) {
+      const bone = new THREE.Bone();
+      bone.position.y = i === 0 ? 0 : DISTANCE;
+
+      // Store the bone and connect it to previous bone
+      // if it exists.
+      this.bones[i] = bone;
+      if (this.bones[i - 1]) {
+        this.bones[i - 1].add(this.bones[i]);
+      }
+
+      const constraints = [constraint];
+      if (i === COUNT - 1) {
+        const target = this.createTarget(new THREE.Vector3(0, i * DISTANCE), 0);
+        chain.add(new IK.IKJoint(bone, { constraints }), { target });
+      } else {
+        chain.add(new IK.IKJoint(bone, { constraints } ));
+      }
+    }
+
+    // Add the chain to the IK system
+    this.ik.add(chain);
+
+    // Add the root bone to the scene
+    this.scene.add(this.bones[0]);
+
+    return this.ik;
+  }
+
+  onChange() {
+    // Check if constraintType has changed
+    if (this.config.constraintType !== this.constraintType) {
+      this.constraintType = this.config.constraintType;
+
+      let constraint;
+      switch(this.constraintType) {
+        case 'none':
+          constraint = null;
+          break;
+        case 'ball':
+          constraint = new IK.IKBallConstraint(this.config.constraintAngle);
+          break;
+      }
+
+      this.ik.chains[0].joints.forEach(j => j.constraints[0] = constraint);
+    }
+
+    if (this.config.constraintAngle !== this.constraintAngle) {
+      if (this.config.constraintType !== 'ball') {
+        throw new Error('can only set angle on IKBallConstraint');
+      }
+      this.ik.chains[0].joints.forEach(j => j.constraints[0].angle = this.config.constraintAngle);
+      this.constraintAngle = this.config.constraintAngle;
+    }
+
+    super.onChange();
+  }
+};
+
+window.app = new SingleEffectorApp();
+
+    </script>
+  </body>
+</html>

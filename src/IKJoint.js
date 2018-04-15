@@ -12,11 +12,7 @@ class IKJoint {
    * @param {THREE.Bone} bone
    */
   constructor(bone, { constraints } = {}) {
-    this.constraints = constraints;
-
-    this.constraints = [
-      new IKBallConstraint(90),
-    ];
+    this.constraints = constraints || [];
 
     this.bone = bone;
 
@@ -66,7 +62,9 @@ class IKJoint {
     }
 
     for (let constraint of this.constraints) {
-      constraint.apply(this);
+      if (constraint && constraint.apply) {
+        constraint.apply(this);
+      }
     }
   }
 

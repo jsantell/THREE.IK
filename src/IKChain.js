@@ -196,7 +196,7 @@ class IKChain {
         joint.applyConstraints();
       }
       direction.copy(joint._direction);
-      
+
       // Now apply the world position to the three.js matrices. We need
       // to do this before the next joint iterates so it can generate rotations
       // in local space from its parent's matrixWorld.
