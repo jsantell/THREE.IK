@@ -105,8 +105,9 @@ function createIK() {
     gizmo = createTransformControls(new THREE.Vector3(Math.sin(Math.PI * (i + 1) / 3), 1.0, Math.cos(Math.PI * (i + 1) / 3)));
     gizmos.push(gizmo);
 
+    const subBase = i === 2 ? baseChain.joints[10] : baseChainEffector;
     // Add the joint from the base chain
-    chain.add(baseChainEffector);
+    chain.add(subBase);
 
     for (let j = 0; j < 10; j++) {
       const bone = new THREE.Bone();
@@ -114,7 +115,7 @@ function createIK() {
       bone.position.set(0, 0.2, 0);
 
       if (j === 0) {
-        baseChainEffector.bone.add(bone);
+        subBase.bone.add(bone);
       } else if (prevBone) {
         prevBone.add(bone);
       }
@@ -153,7 +154,12 @@ function onWindowResize() {
 function animate() {
   requestAnimationFrame( animate );
 
-  for (let gizmo of gizmos) {
+  const t= performance.now() / 1000;
+  for (let i = 0; i < gizmos.length; i++) {
+    let gizmo = gizmos[i];
+    const x = Math.sin(Math.PI * 2 * t + (i/3) * 100) * 2 ;
+    const z = Math.cos(Math.PI * 2 * t + (i/3) * 100) * 2 ;
+//    gizmo.target.position.set(x, Math.sin(t)*2 + 2, z);
     gizmo.update();
   }
 

@@ -190,27 +190,30 @@ class IKChain {
 
       const direction = nextJoint._getWorldDirection(joint);
       joint._setDirection(direction);
+      joint.applyConstraints();
+      direction.copy(joint._direction);
+      
+      // Now apply the world position to the three.js matrices. We need
+      // to do this before the next joint iterates so it can generate rotations
+      // in local space from its parent's matrixWorld.
+      // If this is a chain sub base, let the parent chain apply the world position
+      if (!(this.base === joint && joint.isSubBase())) {
+        joint._applyWorldPosition();
+      }
+
       nextJoint._setWorldPosition(direction.multiplyScalar(nextJoint.distance).add(jointWorldPosition));
 
-      // Since we don't iterate over the last joint, if it's a
-      // non-effector, then we must orient it to its parent rotation
-      // since otherwise it has nowhere to point to.
-      if (i === this.joints.length - 2 && nextJoint !== this.effector) {
-        nextJoint._setDirection(direction);
+      // Since we don't iterate over the last joint, handle the applying of
+      // the world position. If it's also a non-effector, then we must orient
+      // it to its parent rotation since otherwise it has nowhere to point to.
+      if (i === this.joints.length - 2) {
+        if (nextJoint !== this.effector) {
+          nextJoint._setDirection(direction);
+        }
+        nextJoint._applyWorldPosition();
       }
     }
 
-    for (let i = 0; i < this.joints.length; i++) {
-      const joint = this.joints[i];
-
-      // If this is a chain sub base, let the parent chain
-      // apply the world position
-      if (this.base === joint && joint.isSubBase()) {
-        continue;
-      }
-
-      joint._applyWorldPosition();
-    }
   }
 }
 

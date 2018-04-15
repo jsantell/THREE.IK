@@ -85,13 +85,14 @@ export const setQuaternionFromDirection = (function () {
  * @see https://github.com/BabylonJS/Babylon.js/blob/6050288da37623088d5f613ca2d85aef877c5cd5/src/Math/babylon.math.ts#L1936
  * @param {THREE.Vector3} vector
  * @param {THREE.Matrix4} matrix
+ * @param {THREE.Vector3} target
  */
-export const transformPoint = (vector, m) => {
+export const transformPoint = (vector, m, target) => {
   const e = m.elements;
 
   const x = (vector.x * e[0]) + (vector.y * e[4]) + (vector.z * e[8]) + e[12];
   const y = (vector.x * e[1]) + (vector.y * e[5]) + (vector.z * e[9]) + e[13];
   const z = (vector.x * e[2]) + (vector.y * e[6]) + (vector.z * e[10]) + e[14];
   const w = (vector.x * e[3]) + (vector.y * e[7]) + (vector.z * e[11]) + e[15];
-  vector.set(x / w, y / w, z / w);
+  target.set(x / w, y / w, z / w);
 };

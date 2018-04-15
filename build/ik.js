@@ -69,13 +69,13 @@ var setQuaternionFromDirection = function () {
     target.setFromRotationMatrix(m);
   };
 }();
-var transformPoint = function transformPoint(vector, m) {
+var transformPoint = function transformPoint(vector, m, target) {
   var e = m.elements;
   var x = vector.x * e[0] + vector.y * e[4] + vector.z * e[8] + e[12];
   var y = vector.x * e[1] + vector.y * e[5] + vector.z * e[9] + e[13];
   var z = vector.x * e[2] + vector.y * e[6] + vector.z * e[10] + e[14];
   var w = vector.x * e[3] + vector.y * e[7] + vector.z * e[11] + e[15];
-  vector.set(x / w, y / w, z / w);
+  target.set(x / w, y / w, z / w);
 };
 
 var asyncGenerator = function () {
@@ -222,7 +222,11 @@ var createClass = function () {
 var Y_AXIS = new three.Vector3(0, 1, 0);
 var IKJoint = function () {
   function IKJoint(bone) {
+    var _ref = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {},
+        constraints = _ref.constraints;
     classCallCheck(this, IKJoint);
+    this.constraints = constraints;
+    this.constraints = [{ axis: new three.Vector3(0, 1, 0), angle: 0 }];
     this.bone = bone;
     this.distance = 0;
     this._originalDirection = new three.Vector3();
@@ -252,6 +256,45 @@ var IKJoint = function () {
       }
       getCentroid(this._subBasePositions, this._worldPosition);
       this._subBasePositions.length = 0;
+    }
+  }, {
+    key: 'applyConstraints',
+    value: function applyConstraints() {
+      if (!this.constraints) {
+        return;
+      }
+      var direction = new three.Vector3().copy(this._direction);
+      this._worldToLocalDirection(direction);
+      var _iteratorNormalCompletion = true;
+      var _didIteratorError = false;
+      var _iteratorError = undefined;
+      try {
+        for (var _iterator = this.constraints[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+          var constraint = _step.value;
+          var axis = constraint.axis;
+          var angle = constraint.angle;
+          var _direction = new three.Vector3().copy(this._direction);
+          var theta = Math.abs(angle / (57.2958 * _direction.angleTo(axis)));
+          if (theta < 1) {
+            this._setDirection(_direction.lerp(axis, theta));
+          } else {
+            this._setDirection(axis);
+          }
+        }
+      } catch (err) {
+        _didIteratorError = true;
+        _iteratorError = err;
+      } finally {
+        try {
+          if (!_iteratorNormalCompletion && _iterator.return) {
+            _iterator.return();
+          }
+        } finally {
+          if (_didIteratorError) {
+            throw _iteratorError;
+          }
+        }
+      }
     }
   }, {
     key: '_setDistance',
@@ -294,6 +337,14 @@ var IKJoint = function () {
       this._worldPosition.copy(position);
     }
   }, {
+    key: '_worldToLocalDirection',
+    value: function _worldToLocalDirection(direction) {
+      if (this.bone.parent) {
+        var inverseParent = new three.Matrix4().getInverse(this.bone.parent.matrixWorld);
+        direction.transformDirection(inverseParent);
+      }
+    }
+  }, {
     key: '_applyWorldPosition',
     value: function _applyWorldPosition() {
       var direction = new three.Vector3().copy(this._direction);
@@ -302,11 +353,10 @@ var IKJoint = function () {
       if (parent) {
         this._updateMatrixWorld();
         var inverseParent = new three.Matrix4().getInverse(this.bone.parent.matrixWorld);
-        transformPoint(position, inverseParent);
+        transformPoint(position, inverseParent, position);
         this.bone.position.copy(position);
         this._updateMatrixWorld();
-        inverseParent = new three.Matrix4().getInverse(this.bone.parent.matrixWorld);
-        direction.transformDirection(inverseParent);
+        this._worldToLocalDirection(direction);
         setQuaternionFromDirection(direction, Y_AXIS, this.bone.quaternion);
       } else {
         this.bone.position.copy(position);
@@ -473,17 +523,18 @@ var IKChain = function () {
         var jointWorldPosition = joint._getWorldPosition();
         var direction = nextJoint._getWorldDirection(joint);
         joint._setDirection(direction);
+        joint.applyConstraints();
+        direction.copy(joint._direction);
+        if (!(this.base === joint && joint.isSubBase())) {
+          joint._applyWorldPosition();
+        }
         nextJoint._setWorldPosition(direction.multiplyScalar(nextJoint.distance).add(jointWorldPosition));
-        if (i === this.joints.length - 2 && nextJoint !== this.effector) {
-          nextJoint._setDirection(direction);
+        if (i === this.joints.length - 2) {
+          if (nextJoint !== this.effector) {
+            nextJoint._setDirection(direction);
+          }
+          nextJoint._applyWorldPosition();
         }
-      }
-      for (var _i2 = 0; _i2 < this.joints.length; _i2++) {
-        var _joint2 = this.joints[_i2];
-        if (this.base === _joint2 && _joint2.isSubBase()) {
-          continue;
-        }
-        _joint2._applyWorldPosition();
       }
     }
   }]);

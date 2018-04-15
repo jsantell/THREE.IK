@@ -10,7 +10,13 @@ class IKJoint {
   /**
    * @param {THREE.Bone} bone
    */
-  constructor(bone) {
+  constructor(bone, { constraints } = {}) {
+    this.constraints = constraints;
+
+    this.constraints = [
+      { axis: new Vector3(0, 1, 0), angle: 0 }
+    ];
+
     this.bone = bone;
 
     this.distance = 0;
@@ -45,6 +51,29 @@ class IKJoint {
     getCentroid(this._subBasePositions, this._worldPosition);
     this._subBasePositions.length = 0;
   }
+
+  applyConstraints() {
+    if (!this.constraints) {
+      return;
+    }
+
+    // Cast our world direction into local space.
+    const direction = new Vector3().copy(this._direction);
+    this._worldToLocalDirection(direction);
+
+    for (let constraint of this.constraints) {
+      const axis = constraint.axis;
+      const angle = constraint.angle;
+      const direction = new Vector3().copy(this._direction);
+      const theta = Math.abs(angle / (57.2958 * direction.angleTo(axis)));
+      if (theta < 1) {
+        this._setDirection(direction.lerp(axis, theta));
+      } else {
+        this._setDirection(axis);
+      }
+    }
+  }
+
   /**
    * Set the distance.
    * @private
@@ -89,6 +118,13 @@ class IKJoint {
     this._worldPosition.copy(position);
   }
 
+  _worldToLocalDirection(direction) {
+    if (this.bone.parent) {
+      const inverseParent = new Matrix4().getInverse(this.bone.parent.matrixWorld);
+      direction.transformDirection(inverseParent);
+    }
+  }
+
   _applyWorldPosition() {
     let direction = new Vector3().copy(this._direction);
     let position = new Vector3().copy(this._getWorldPosition());
@@ -98,13 +134,12 @@ class IKJoint {
     if (parent) {
       this._updateMatrixWorld();
       let inverseParent = new Matrix4().getInverse(this.bone.parent.matrixWorld);
-      transformPoint(position, inverseParent);
+      transformPoint(position, inverseParent, position);
       this.bone.position.copy(position);
 
       this._updateMatrixWorld();
 
-      inverseParent = new Matrix4().getInverse(this.bone.parent.matrixWorld);
-      direction.transformDirection(inverseParent);
+      this._worldToLocalDirection(direction);
       setQuaternionFromDirection(direction, Y_AXIS, this.bone.quaternion);
 
     } else {
