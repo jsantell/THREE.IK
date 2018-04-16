@@ -14,6 +14,8 @@ class IK {
     this.chains = [];
     this._needsRecalculated = true;
 
+    this.isIK = true;
+
     /**
      * An array of root chains for this IK system, each containing
      * an array of all subchains, including the root chain, for that

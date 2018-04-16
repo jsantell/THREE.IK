@@ -2,13 +2,6 @@ const Y_AXIS = new THREE.Vector3(0, 1, 0);
 const BONES = 4;
 const HEIGHT = 0.5;
 
-class Arrow extends THREE.Mesh {
-  constructor() {
-    const geo = new THREE.ConeBufferGeometry(0.05, 0.1, 10);
-    geo.applyMatrix(new THREE.Matrix4().makeRotationAxis(new THREE.Vector3(1, 0, 0), Math.PI/2));
-    super(geo, new THREE.MeshBasicMaterial({ color: 0xff0000 }));
-  }
-}
 
 class IKApp {
   constructor() {
@@ -73,9 +66,9 @@ class IKApp {
       throw new Error('`setupIK()` must construct `this.ik`');
     }
 
-    this.skeletonHelper = new THREE.SkeletonHelper(this.bones[0]);
-    this.skeletonHelper.material.linewidth = 10;
-    this.scene.add(this.skeletonHelper);
+    this.scene.add(new THREE.SkeletonHelper(this.bones[0]));
+    this.helper = new IK.IKHelper(this.ik);
+    this.scene.add(this.helper);
 
     window.addEventListener('resize', this.onWindowResize, false);
 
