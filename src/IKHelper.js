@@ -15,7 +15,12 @@ class BoneHelper extends Object3D {
     if (height !== 0) {
       const geo = new ConeBufferGeometry(boneSize, height, 4);
       geo.applyMatrix(new Matrix4().makeRotationAxis(new Vector3(1, 0, 0), Math.PI/2));
-      this.boneMesh = new Mesh(geo, new MeshBasicMaterial({ color: 0xff0000, wireframe: true }));
+      this.boneMesh = new Mesh(geo, new MeshBasicMaterial({
+        color: 0xff0000,
+        wireframe: true,
+        depthTest: false,
+        depthWrite: false,
+      }));
     } else {
       this.boneMesh = new Object3D();
     }
@@ -72,6 +77,9 @@ export default class IKHelper extends Object3D {
 
   get showBones() { return this._showBones; }
   set showBones(showBones) {
+    if (showBones === this._showBones) {
+      return;
+    }
     for (let [joint, mesh] of this._meshes) {
       if (showBones) {
         mesh.add(mesh.boneMesh);
@@ -84,6 +92,9 @@ export default class IKHelper extends Object3D {
 
   get showAxes() { return this._showAxes; }
   set showAxes(showAxes) {
+    if (showAxes === this._showAxes) {
+      return;
+    }
     for (let [joint, mesh] of this._meshes) {
       if (showAxes) {
         mesh.add(mesh.axesHelper);
@@ -93,13 +104,14 @@ export default class IKHelper extends Object3D {
     }
     this._showAxes = showAxes;
   }
-  
+
   get wireframe() { return this._wireframe; }
   set wireframe(wireframe) {
+    if (wireframe === this._wireframe) {
+      return;
+    }
     for (let [joint, mesh] of this._meshes) {
       if (mesh.boneMesh.material) {
-        console.log(mesh.boneMesh.material);
-        window.mat = mesh.boneMesh.material;
         mesh.boneMesh.material.wireframe = wireframe;
       }
     }

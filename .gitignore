@@ -5,3 +5,4 @@ package-lock.json
 .idea
 *.iml
 app.min.js
+build

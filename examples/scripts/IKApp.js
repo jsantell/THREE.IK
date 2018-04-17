@@ -10,11 +10,20 @@ class IKApp {
     this.onWindowResize = this.onWindowResize.bind(this);
 
     this.gui = new dat.GUI();
-    this.config = {};
-
+    this.config = {
+      showAxes: true,
+      showBones: true,
+      wireframe: true,
+    };
+    
     if (this.setupGUI) {
       this.setupGUI();
     }
+
+    const helperGUI = this.gui.addFolder('helper');
+    helperGUI.add(this.config, 'showAxes').onChange(this.onChange);
+    helperGUI.add(this.config, 'showBones').onChange(this.onChange);
+    helperGUI.add(this.config, 'wireframe').onChange(this.onChange);
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xeeeeee);
@@ -112,13 +121,8 @@ class IKApp {
   }
 
   onChange() {
-  }
-
-  addGUI(name, values, defaultValue) {
-    this.config[name] = defaultValue === undefined ? values : defaultValue;
-    const controller = this.gui.add(this.config, name, values);
-    controller.onChange(this.onChange);
-
-    return controller;
+    this.helper.showAxes = this.config.showAxes;
+    this.helper.showBones = this.config.showBones;
+    this.helper.wireframe = this.config.wireframe;
   }
 };
