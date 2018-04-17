@@ -14,8 +14,9 @@ class IKApp {
       showAxes: true,
       showBones: true,
       wireframe: true,
+      color: '#ff0077',
     };
-    
+
     if (this.setupGUI) {
       this.setupGUI();
     }
@@ -24,6 +25,7 @@ class IKApp {
     helperGUI.add(this.config, 'showAxes').onChange(this.onChange);
     helperGUI.add(this.config, 'showBones').onChange(this.onChange);
     helperGUI.add(this.config, 'wireframe').onChange(this.onChange);
+    helperGUI.addColor(this.config, 'color').onChange(this.onChange);
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0xeeeeee);
@@ -124,5 +126,6 @@ class IKApp {
     this.helper.showAxes = this.config.showAxes;
     this.helper.showBones = this.config.showBones;
     this.helper.wireframe = this.config.wireframe;
+    this.helper.color = this.config.color;
   }
 };

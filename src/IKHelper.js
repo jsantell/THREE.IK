@@ -1,4 +1,4 @@
-import { Object3D, Matrix4, AxesHelper, ArrowHelper, Mesh, ConeBufferGeometry, MeshBasicMaterial, Vector3 } from 'three';
+import { Object3D, Color, Matrix4, AxesHelper, ArrowHelper, Mesh, ConeBufferGeometry, MeshBasicMaterial, Vector3 } from 'three';
 
 class BoneHelper extends Object3D {
   /**
@@ -43,7 +43,7 @@ export default class IKHelper extends Object3D {
    * Create a chain.
    *
    */
-  constructor(ik, { showBones, boneSize, showAxes, axesSize, wireframe } = {}) {
+  constructor(ik, { color, showBones, boneSize, showAxes, axesSize, wireframe } = {}) {
     super();
 
     boneSize = boneSize || 0.1;
@@ -73,6 +73,7 @@ export default class IKHelper extends Object3D {
     this.showBones = showBones !== undefined ? showBones : true;
     this.showAxes = showAxes !== undefined ? showAxes : true;
     this.wireframe = wireframe !== undefined ? wireframe : true;
+    this.color = color || new Color(0xff0077);
   }
 
   get showBones() { return this._showBones; }
@@ -116,6 +117,20 @@ export default class IKHelper extends Object3D {
       }
     }
     this._wireframe = wireframe;
+  }
+
+  get color() { return this._color; }
+  set color(color) {
+    if (this._color && this._color.equals(color)) {
+      return;
+    }
+    color = (color && color.isColor) ? color : new Color(color);
+    for (let [joint, mesh] of this._meshes) {
+      if (mesh.boneMesh.material) {
+        mesh.boneMesh.material.color = color;
+      }
+    }
+    this._color = color;
   }
 
   updateMatrixWorld(force) {
