@@ -52,25 +52,24 @@ class SingleEffectorApp extends IKApp {
   }
 
   setupIK() {
-    const ik = new IK.IK();
+    this.ik = new IK.IK();
     const chain = new IK.IKChain();
     const constraint = new IK.IKBallConstraint(this.config.constraintAngle);
 
-    const bones = [];
     for (let i = 0; i < COUNT; i++) {
       const bone = new THREE.Bone();
       bone.position.y = i === 0 ? 0 : DISTANCE;
 
       // Store the bone and connect it to previous bone
       // if it exists.
-      bones[i] = bone;
-      if (bones[i - 1]) {
-        bones[i - 1].add(bones[i]);
+      this.bones[i] = bone;
+      if (this.bones[i - 1]) {
+        this.bones[i - 1].add(this.bones[i]);
       }
 
       const constraints = [constraint];
       if (i === COUNT - 1) {
-        const target = this.createTarget(new THREE.Vector3(0, i * DISTANCE), 0);
+        const target = this.createTarget(new THREE.Vector3(0, i * DISTANCE, 0));
         chain.add(new IK.IKJoint(bone, { constraints }), { target });
       } else {
         chain.add(new IK.IKJoint(bone, { constraints } ));
@@ -78,21 +77,16 @@ class SingleEffectorApp extends IKApp {
     }
 
     // Add the chain to the IK system
-    ik.add(chain);
+    this.ik.add(chain);
 
     this.pivot = new THREE.Object3D();
     this.pivot.rotation.x = Math.PI / 2;
+    this.scene.add(this.pivot);
+
     // Add the root bone to the scene
-    this.pivot.add(ik.getRootBone());
+    this.pivot.add(this.bones[0]);
 
-    this.baseTarget = this.createTarget(new THREE.Vector3());
-    this.baseTarget.add(this.pivot);
-
-    this.iks.push(ik);
-  }
-
-  update() {
-
+    return this.ik;
   }
 
   onChange() {
@@ -110,14 +104,14 @@ class SingleEffectorApp extends IKApp {
           break;
       }
 
-      this.iks[0].chains[0].joints.forEach(j => j.constraints[0] = constraint);
+      this.ik.chains[0].joints.forEach(j => j.constraints[0] = constraint);
     }
 
     if (this.config.constraintAngle !== this.constraintAngle) {
       if (this.config.constraintType !== 'ball') {
         throw new Error('can only set angle on IKBallConstraint');
       }
-      this.iks[0].chains[0].joints.forEach(j => j.constraints[0].angle = this.config.constraintAngle);
+      this.ik.chains[0].joints.forEach(j => j.constraints[0].angle = this.config.constraintAngle);
       this.constraintAngle = this.config.constraintAngle;
     }
 

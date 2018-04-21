@@ -65,21 +65,16 @@ class IKApp {
 
     this.gizmos = [];
 
-    this.bones = [];
+    this.iks = [];
+    this.helpers = [];
 
     this.setupIK();
 
-    if (!this.bones.length) {
-      throw new Error('`setupIK()` must construct an array of bones');
+    for (let ik of this.iks) {
+      const helper = new IK.IKHelper(ik);
+      this.helpers.push(helper);
+      this.scene.add(helper);
     }
-
-    if (!this.ik) {
-      throw new Error('`setupIK()` must construct `this.ik`');
-    }
-
-    this.scene.add(new THREE.SkeletonHelper(this.bones[0]));
-    this.helper = new IK.IKHelper(this.ik);
-    this.scene.add(this.helper);
 
     window.addEventListener('resize', this.onWindowResize, false);
 
@@ -107,11 +102,17 @@ class IKApp {
   animate() {
     requestAnimationFrame(this.animate);
 
+    if (this.update) {
+      this.update();
+    }
+
     for (let gizmo of this.gizmos) {
       gizmo.update();
     }
 
-    this.ik.update();
+    for (let ik of this.iks) {
+      ik.update();
+    }
 
     this.renderer.render(this.scene, this.camera);
   }
@@ -123,9 +124,11 @@ class IKApp {
   }
 
   onChange() {
-    this.helper.showAxes = this.config.showAxes;
-    this.helper.showBones = this.config.showBones;
-    this.helper.wireframe = this.config.wireframe;
-    this.helper.color = this.config.color;
+    for (let helper of this.helpers) {
+      helper.showAxes = this.config.showAxes;
+      helper.showBones = this.config.showBones;
+      helper.wireframe = this.config.wireframe;
+      helper.color = this.config.color;
+    }
   }
 };

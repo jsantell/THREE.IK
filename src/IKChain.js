@@ -86,6 +86,14 @@ class IKChain {
     return this;
   }
 
+  hasEffector() {
+    return !!this.effector;
+  }
+
+  getDistanceFromTarget() {
+    return this.hasEffector() ? this.effector._getWorldDistance(this.target) : -1;
+  }
+
   connect(chain) {
     if (!chain.isIKChain) {
       throw new Error('Invalid connection in an IKChain. Must be an IKChain.');
@@ -191,10 +199,8 @@ class IKChain {
       const direction = nextJoint._getWorldDirection(joint);
       joint._setDirection(direction);
 
-      // Apply constraints if not an root of an IK system
-      if (joint.isSubBase() || joint !== this.base) {
-        joint.applyConstraints();
-      }
+      joint.applyConstraints();
+
       direction.copy(joint._direction);
 
       // Now apply the world position to the three.js matrices. We need
@@ -218,6 +224,12 @@ class IKChain {
       }
     }
 
+    return this.getDistanceFromTarget();
+  }
+
+  _randomizeRootRotation() {
+    this.base._setDirection(new Vector3(Math.random(), Math.random(), Math.random()));
+    this.base._applyWorldPosition();
   }
 }
 

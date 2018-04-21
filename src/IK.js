@@ -16,6 +16,9 @@ class IK {
 
     this.isIK = true;
 
+    this.iterations = 1;
+    this.tolerance = 0.05;
+
     /**
      * An array of root chains for this IK system, each containing
      * an array of all subchains, including the root chain, for that
@@ -76,20 +79,44 @@ class IK {
     }
 
     for (let subChains of this._orderedChains) {
-      for (let i = subChains.length - 1; i >= 0; i--) {
-        subChains[i]._updateJointWorldPositions();
-      }
+      let iterations = this.iterations;
 
-      // Run the chain's backward step starting with the deepest chains.
-      for (let i = subChains.length - 1; i >= 0; i--) {
-        subChains[i]._backward();
-      }
+      while (iterations > 0) {
+        for (let i = subChains.length - 1; i >= 0; i--) {
+          subChains[i]._updateJointWorldPositions();
+        }
 
-      // Run the chain's forward step starting with the root chain.
-      for (let i = 0; i < subChains.length; i++) {
-        subChains[i]._forward();
+        // Run the chain's backward step starting with the deepest chains.
+        for (let i = subChains.length - 1; i >= 0; i--) {
+          subChains[i]._backward();
+        }
+
+        // Run the chain's forward step starting with the root chain.
+        let withinTolerance = true;
+        for (let i = 0; i < subChains.length; i++) {
+          const distanceFromTarget = subChains[i]._forward();
+          if (distanceFromTarget > this.tolerance) {
+            withinTolerance = false;
+          }
+        }
+
+        if (withinTolerance) {
+          break;
+        }
+
+        iterations--;
+
+        // Get the root chain's base and randomize the rotation, maybe
+        // we'll get a better change at reaching our goal
+        if (iterations > 0) {
+          subChains[subChains.length - 1]._randomizeRootRotation();
+        }
       }
     }
+  }
+
+  getRootBone() {
+    return this.chains[0].base.bone;
   }
 }
 
