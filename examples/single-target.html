@@ -40,53 +40,84 @@
         <script>
 
 const DISTANCE = 0.5;
-const COUNT = 5;
+const COUNT = 20;
+const TOTAL_SYSTEM_COUNT = 10;
+const POSITION_CHANGE_RATE = 1000;
 
 class SingleEffectorApp extends IKApp {
   setupGUI() {
     this.config.constraintType = 'ball';
     this.config.constraintAngle = 90;
+    this.config.animateTarget = true;
 
     this.gui.add(this.config, 'constraintType', ['none', 'ball']).onChange(this.onChange);
     this.gui.add(this.config, 'constraintAngle', 90).min(0).max(360).step(1).onChange(this.onChange);
+    this.gui.add(this.config, 'animateTarget').onChange(this.onChange);
   }
 
   setupIK() {
-    this.ik = new IK.IK();
-    const chain = new IK.IKChain();
-    const constraint = new IK.IKBallConstraint(this.config.constraintAngle);
+    const target = this.createTarget(new THREE.Vector3(0, COUNT * DISTANCE), 0);
+    for (let i = 0; i < TOTAL_SYSTEM_COUNT; i++) {
+      const ik = new IK.IK();
+      const chain = new IK.IKChain();
+      const constraint = new IK.IKBallConstraint(this.config.constraintAngle);
 
-    for (let i = 0; i < COUNT; i++) {
-      const bone = new THREE.Bone();
-      bone.position.y = i === 0 ? 0 : DISTANCE;
+      const bones = [];
+      for (let i = 0; i < COUNT; i++) {
+        const bone = new THREE.Bone();
+        bone.position.y = i === 0 ? 0 : DISTANCE;
 
-      // Store the bone and connect it to previous bone
-      // if it exists.
-      this.bones[i] = bone;
-      if (this.bones[i - 1]) {
-        this.bones[i - 1].add(this.bones[i]);
+        // Store the bone and connect it to previous bone
+        // if it exists.
+        bones[i] = bone;
+        if (bones[i - 1]) {
+          bones[i - 1].add(bones[i]);
+        }
+
+        const constraints = [constraint];
+        if (i === COUNT - 1) {
+          chain.add(new IK.IKJoint(bone, { constraints }), { target });
+        } else {
+          chain.add(new IK.IKJoint(bone, { constraints } ));
+        }
       }
 
-      const constraints = [constraint];
-      if (i === COUNT - 1) {
-        const target = this.createTarget(new THREE.Vector3(0, i * DISTANCE, 0));
-        chain.add(new IK.IKJoint(bone, { constraints }), { target });
-      } else {
-        chain.add(new IK.IKJoint(bone, { constraints } ));
-      }
+      // Add the chain to the IK system
+      ik.add(chain);
+
+      const pivot = new THREE.Object3D();
+      pivot.rotation.x = -Math.PI / 2;
+      pivot.add(ik.getRootBone());
+      const theta = (i / TOTAL_SYSTEM_COUNT) * Math.PI * 2;
+      pivot.position.set(Math.sin(theta) * 3 , 0, Math.cos(theta) * 3);
+      this.scene.add(pivot);
+      this.iks.push(ik);
     }
 
-    // Add the chain to the IK system
-    this.ik.add(chain);
+    this.target = target;
+  }
 
-    this.pivot = new THREE.Object3D();
-    this.pivot.rotation.x = Math.PI / 2;
-    this.scene.add(this.pivot);
+  update() {
+    const t = performance.now();
+    this.lastTransform = this.lastTransform || -Infinity;
 
-    // Add the root bone to the scene
-    this.pivot.add(this.bones[0]);
+    if (this.config.animateTarget) {
+      if ((this.lastTransform + POSITION_CHANGE_RATE) < t) {
+        this.targetStart = new THREE.Vector3().copy(this.target.position);
+        this.targetGoal = new THREE.Vector3(
+          (Math.random() - 0.5) * 8,
+          COUNT * DISTANCE * Math.random(),
+          (Math.random() - 0.5) * 8
+        );
+        this.lastTransform = t;
+      }
 
-    return this.ik;
+      const easeOutCubic = function (t) { return (--t)*t*t+1 };
+      const easeInOutCubic = function (t) { return t<.5 ? 4*t*t*t : (t-1)*(2*t-2)*(2*t-2)+1 };
+      let alpha = (t - this.lastTransform) / POSITION_CHANGE_RATE;
+      alpha = easeInOutCubic(alpha);
+      this.target.position.lerpVectors(this.targetStart, this.targetGoal, alpha);
+    }
   }
 
   onChange() {
@@ -104,14 +135,14 @@ class SingleEffectorApp extends IKApp {
           break;
       }
 
-      this.ik.chains[0].joints.forEach(j => j.constraints[0] = constraint);
+      this.iks[0].chains[0].joints.forEach(j => j.constraints[0] = constraint);
     }
 
     if (this.config.constraintAngle !== this.constraintAngle) {
       if (this.config.constraintType !== 'ball') {
         throw new Error('can only set angle on IKBallConstraint');
       }
-      this.ik.chains[0].joints.forEach(j => j.constraints[0].angle = this.config.constraintAngle);
+      this.iks[0].chains[0].joints.forEach(j => j.constraints[0].angle = this.config.constraintAngle);
       this.constraintAngle = this.config.constraintAngle;
     }
 

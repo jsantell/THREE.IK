@@ -34,7 +34,7 @@ class IKApp {
     this.camera.position.set(10, 5, 6);
     this.camera.lookAt(this.scene.position);
 
-    this.scene.add(new THREE.AmbientLight(0xffffff, 1));
+    this.scene.add(new THREE.AmbientLight(0xffffff, 0.8));
     this.light = new THREE.DirectionalLight( 0xffffff );
     this.light.position.set(10, 10, 0);
     //this.light.castShadow = true;

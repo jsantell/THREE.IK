@@ -40,7 +40,7 @@
         <script>
 
 const DISTANCE = 0.5;
-const COUNT = 5;
+const COUNT = 10;
 
 class SingleEffectorApp extends IKApp {
   setupGUI() {
@@ -81,7 +81,7 @@ class SingleEffectorApp extends IKApp {
     ik.add(chain);
 
     this.pivot = new THREE.Object3D();
-    this.pivot.rotation.x = Math.PI / 2;
+    this.pivot.rotation.x = -Math.PI / 2;
     // Add the root bone to the scene
     this.pivot.add(ik.getRootBone());
 
