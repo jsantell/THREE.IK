@@ -44,7 +44,7 @@ const COUNT = 20;
 const TOTAL_SYSTEM_COUNT = 10;
 const POSITION_CHANGE_RATE = 1000;
 
-class SingleEffectorApp extends IKApp {
+class SingleTargetApp extends IKApp {
   setupGUI() {
     this.config.constraintType = 'ball';
     this.config.constraintAngle = 90;
@@ -135,14 +135,19 @@ class SingleEffectorApp extends IKApp {
           break;
       }
 
-      this.iks[0].chains[0].joints.forEach(j => j.constraints[0] = constraint);
+      for (let ik of this.iks) {
+        ik.chains[0].joints.forEach(j => j.constraints[0] = constraint);
+      }
     }
 
     if (this.config.constraintAngle !== this.constraintAngle) {
       if (this.config.constraintType !== 'ball') {
         throw new Error('can only set angle on IKBallConstraint');
       }
-      this.iks[0].chains[0].joints.forEach(j => j.constraints[0].angle = this.config.constraintAngle);
+
+      for (let ik of this.iks) {
+        ik.chains[0].joints.forEach(j => j.constraints[0].angle = this.config.constraintAngle);
+      }
       this.constraintAngle = this.config.constraintAngle;
     }
 
@@ -150,7 +155,7 @@ class SingleEffectorApp extends IKApp {
   }
 };
 
-window.app = new SingleEffectorApp();
+window.app = new SingleTargetApp();
 
     </script>
   </body>

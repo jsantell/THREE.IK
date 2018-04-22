@@ -15,6 +15,14 @@ export default class IKBallConstraint {
     this.angle = angle;
   }
 
+  /**
+   * Applies a constraint to passed in IKJoint, updating
+   * its direction if necessary. Returns a boolean indicating
+   * if the constraint was applied or not.
+   *
+   * @param {IKJoint} joint
+   * @return {boolean}
+   */
   apply(joint) {
 
     // Get direction of joint and parent in world space
@@ -32,6 +40,9 @@ export default class IKBallConstraint {
 
       parentDirection.applyAxisAngle(correctionAxis, this.angle * DEG2RAD * 0.5);
       joint._setDirection(parentDirection);
+      return true;
     }
+
+    return false;
   }
 }

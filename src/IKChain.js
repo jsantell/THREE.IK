@@ -226,11 +226,6 @@ class IKChain {
 
     return this.getDistanceFromTarget();
   }
-
-  _randomizeRootRotation() {
-    this.base._setDirection(new Vector3(Math.random(), Math.random(), Math.random()));
-    this.base._applyWorldPosition();
-  }
 }
 
 export default IKChain;

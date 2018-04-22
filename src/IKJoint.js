@@ -61,11 +61,14 @@ class IKJoint {
       return;
     }
 
+    let constraintApplied = false;
     for (let constraint of this.constraints) {
       if (constraint && constraint.apply) {
-        constraint.apply(this);
+        let applied = constraint.apply(this);
+        constraintApplied = constraintApplied || applied;
       }
     }
+    return constraintApplied;
   }
 
   /**

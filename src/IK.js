@@ -16,8 +16,8 @@ class IK {
 
     this.isIK = true;
 
-    this.iterations = 1;
-    this.tolerance = 0.05;
+    // this.iterations = 1;
+    // this.tolerance = 0.05;
 
     /**
      * An array of root chains for this IK system, each containing
@@ -79,7 +79,8 @@ class IK {
     }
 
     for (let subChains of this._orderedChains) {
-      let iterations = this.iterations;
+      // Hardcode to one for now
+      let iterations = 1; // this.iterations;
 
       while (iterations > 0) {
         for (let i = subChains.length - 1; i >= 0; i--) {
@@ -108,8 +109,9 @@ class IK {
 
         // Get the root chain's base and randomize the rotation, maybe
         // we'll get a better change at reaching our goal
+        // @TODO
         if (iterations > 0) {
-          subChains[subChains.length - 1]._randomizeRootRotation();
+          // subChains[subChains.length - 1]._randomizeRootRotation();
         }
       }
     }
