@@ -57,6 +57,9 @@ class IK {
         orderedChains.push(chain);
         for (let subChains of chain.chains.values()) {
           for (let subChain of subChains) {
+            if (chainsToSave.indexOf(subChain) !== -1) {
+              throw new Error('Recursive chain structure detected.');
+            }
             chainsToSave.push(subChain);
           }
         }
