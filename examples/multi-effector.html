@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>ik</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <style>
+            body {
+                font-family: Monospace;
+                background-color: #000;
+                color: #fff;
+                margin: 0px;
+                overflow: hidden;
+            }
+            #info {
+                color: #fff;
+                position: absolute;
+                top: 10px;
+                width: 100%;
+                text-align: center;
+                z-index: 100;
+                display:block;
+            }
+            #info a {
+                color: #046;
+                font-weight: bold;
+            }
+        </style>
+    </head>
+
+    <body>
+        <script src="scripts/dat.gui.js"></script>
+        <script src="scripts/three.js"></script>
+        <script src="scripts/TransformControls.js"></script>
+        <script src="scripts/OrbitControls.js"></script>
+        <!--<script src="scripts/inflate.min.js"></script>
+        <script src="scripts/FBXLoader.js"></script>-->
+        <script src="scripts/IKApp.js"></script>
+        <script src="../build/ik.js"></script>
+        <script>
+
+const DISTANCE = 0.5;
+const ROOT_COUNT = 16;
+const ARM_COUNT = 8;
+
+class MultiEffector extends IKApp {
+  setupGUI() {
+    this.config.constraintType = 'ball';
+    this.config.constraintAngle = 360;
+
+    this.gui.add(this.config, 'constraintType', ['none', 'ball']).onChange(this.onChange);
+    this.gui.add(this.config, 'constraintAngle').min(0).max(360).step(1).onChange(this.onChange);
+  }
+
+  setupIK() {
+    const ik = new IK.IK();
+    let rootChain = null;
+    for (let i = 0; i < 9; i++) {
+      const isRoot = i === 0;
+      const chain = new IK.IKChain();
+      const constraint = new IK.IKBallConstraint(this.config.constraintAngle);
+      const target = isRoot ? null : this.createTarget(new THREE.Vector3(
+        Math.cos(Math.PI * 0.5 * ((i - 1) % 4)),
+        ROOT_COUNT * DISTANCE * (i > 4 ? 1 : 0.5),
+        Math.sin(Math.PI * 0.5 * ((i - 1) % 4))
+      ));
+
+      if (isRoot) {
+        rootChain = chain;
+      }
+
+      const bones = [];
+      const boneCount = isRoot ? ROOT_COUNT : ARM_COUNT;
+      for (let j = 0; j < boneCount; j++) {
+        const isBase = j === 0;
+        const isSubBase = !isRoot && isBase;
+        if (isSubBase) {
+          const joint = rootChain.joints[(ROOT_COUNT / (i > 4 ? 1 : 2)) - 1];
+          bones.push(joint.bone);
+          chain.add(joint);
+          continue;
+        }
+
+        const bone = new THREE.Bone();
+        bone.position.y = j === 0 ? 0 : DISTANCE;
+
+        // Store the bone and connect it to previous bone
+        // if it exists.
+        bones[j] = bone;
+        if (bones[j - 1]) {
+          bones[j - 1].add(bones[j]);
+        }
+
+        const constraints = [constraint];
+        if (j === boneCount - 1 && !isRoot) {
+          chain.add(new IK.IKJoint(bone, { constraints }), { target });
+        } else {
+          chain.add(new IK.IKJoint(bone, { constraints } ));
+        }
+      }
+
+      if (!isRoot) {
+        rootChain.connect(chain);
+      }
+    }
+
+    ik.add(rootChain);
+    this.iks.push(ik);
+
+    const pivot = new THREE.Object3D();
+    pivot.rotation.x = -Math.PI / 2;
+    pivot.add(ik.getRootBone());
+    this.scene.add(pivot);
+  }
+
+  onChange() {
+    // Check if constraintType has changed
+    if (this.config.constraintType !== this.constraintType) {
+      this.constraintType = this.config.constraintType;
+
+      let constraint;
+      switch(this.constraintType) {
+        case 'none':
+          constraint = null;
+          break;
+        case 'ball':
+          constraint = new IK.IKBallConstraint(this.config.constraintAngle);
+          break;
+      }
+
+      for (let ik of this.iks) {
+        ik.chains[0].joints.forEach(j => j.constraints[0] = constraint);
+        for (let [index, chains] of ik.chains[0].chains) {
+          for (let chain of chains) {
+            chain.joints.forEach(j => j.constraints[0].angle = this.config.constraintAngle);
+          }
+        }
+      }
+    }
+
+    if (this.config.constraintAngle !== this.constraintAngle) {
+      if (this.config.constraintType !== 'ball') {
+        throw new Error('can only set angle on IKBallConstraint');
+      }
+
+      for (let ik of this.iks) {
+        ik.chains[0].joints.forEach(j => j.constraints[0].angle = this.config.constraintAngle);
+        for (let [index, chains] of ik.chains[0].chains) {
+          for (let chain of chains) {
+            chain.joints.forEach(j => j.constraints[0].angle = this.config.constraintAngle);
+          }
+        }
+      }
+      this.constraintAngle = this.config.constraintAngle;
+    }
+
+    super.onChange();
+  }
+};
+
+window.app = new MultiEffector();
+
+    </script>
+  </body>
+</html>

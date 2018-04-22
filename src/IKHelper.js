@@ -47,7 +47,7 @@ class IKHelper extends Object3D {
 
   /**
    * Creates a visualization for an IK.
-   * 
+   *
    * @param {IK} ik
    * @param {Object} config
    * @param {THREE.Color} [config.color]
@@ -71,16 +71,29 @@ class IKHelper extends Object3D {
 
     this._meshes = new Map();
 
-    for (let chain of this.ik.chains) {
-      for (let i = 0; i < chain.joints.length; i++) {
-        const joint = chain.joints[i];
-        const nextJoint = chain.joints[i+1];
-        const distance = nextJoint ? nextJoint.distance : 0;
+    for (let rootChain of this.ik.chains) {
+      const chainsToMeshify = [rootChain];
+      while (chainsToMeshify.length) {
+        const chain = chainsToMeshify.shift();
+        for (let i = 0; i < chain.joints.length; i++) {
+          const joint = chain.joints[i];
+          const nextJoint = chain.joints[i+1];
+          const distance = nextJoint ? nextJoint.distance : 0;
 
-        const mesh = new BoneHelper(distance, boneSize, axesSize);
-        mesh.matrixAutoUpdate = false;
-        this._meshes.set(joint, mesh);
-        this.add(mesh);
+          // If a sub base, don't make another bone
+          if (chain.base === joint && chain !== rootChain) {
+            continue;
+          }
+          const mesh = new BoneHelper(distance, boneSize, axesSize);
+          mesh.matrixAutoUpdate = false;
+          this._meshes.set(joint, mesh);
+          this.add(mesh);
+        }
+        for (let subChains of chain.chains.values()) {
+          for (let subChain of subChains) {
+            chainsToMeshify.push(subChain);
+          }
+        }
       }
     }
 
@@ -92,7 +105,7 @@ class IKHelper extends Object3D {
      * @default true
      */
     this.showBones = showBones !== undefined ? showBones : true;
-    
+
     /**
      * Whether this IKHelper's axes are visible or not.
      *
@@ -101,7 +114,7 @@ class IKHelper extends Object3D {
      * @default true
      */
     this.showAxes = showAxes !== undefined ? showAxes : true;
-    
+
     /**
      * Whether this IKHelper should be rendered as wireframes or not.
      *
@@ -110,7 +123,7 @@ class IKHelper extends Object3D {
      * @default true
      */
     this.wireframe = wireframe !== undefined ? wireframe : true;
-    
+
     /**
      * The color of this IKHelper's bones.
      *
