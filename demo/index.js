@@ -1,15 +1,18 @@
-import { Mesh, BoxBufferGeometry, MeshBasicMaterial, Bone, Object3D } from 'three';
+import { Bone, Color, MeshBasicMaterial, Object3D } from 'three';
 import ThreeApp from '@jsantell/three-app';
 import OrbitControls from '@jsantell/three-orbit-controls';
 import { IK, IKChain, IKJoint, IKHelper } from '../';
 
 const ARM_COUNT = 10;
-const SEGMENT_COUNT = 15;
-const SEGMENT_DISTANCE = 0.3;
+const SEGMENT_COUNT = 10;
+const SEGMENT_DISTANCE = 0.5;
 const ARMS_RADIUS = 3;
 
 class App extends ThreeApp {
   init() {
+    this.renderer.setClearColor(0xefefef);
+    this.renderer.autoClear = true;
+
     this.mouseTarget = new Object3D();
     this.scene.add(this.mouseTarget);
 
@@ -49,23 +52,52 @@ class App extends ThreeApp {
     this.scene.add(new THREE.AmbientLight(0xffffff));
 
     for (let ik of this.iks) {
-      this.scene.add(new IKHelper(ik));
+      const helper = new IKHelper(ik);
+      let counter = 0;
+      for (let [joint, mesh] of helper._meshes) {
+        const color = new Color(`hsl(${(counter/SEGMENT_COUNT)*360}, 80%, 80%)`);
+        mesh.boneMesh.material = new MeshBasicMaterial({
+          color: color,
+          transparent: true,
+          opacity: 0.9,
+        });
+
+        counter++;
+      }
+      this.scene.add(helper);
+
     }
 
-    this.camera.position.z = 3;
+    this.camera.position.z = 4;
 
     this.onMouseMove = this.onMouseMove.bind(this);
+    this.onMouseDown = this.onMouseDown.bind(this);
+    this.onMouseUp = this.onMouseUp.bind(this);
     window.addEventListener('mousemove', this.onMouseMove);
+    window.addEventListener('mousedown', this.onMouseDown);
+    window.addEventListener('mouseup', this.onMouseUp);
+  }
+
+  onMouseUp() {
+    this.mouseDown = false;
+  }
+
+  onMouseDown() {
+    this.mouseDown = true;
   }
 
   onMouseMove(event) {
-    const vector = new THREE.Vector3();
-    vector.set((event.clientX / window.innerWidth) * 2 - 1,
-              -(event.clientY / window.innerHeight) * 2 + 1,
-              0.5);
-    vector.unproject(this.camera);
+    if (this.mouseDown) {
+      return;
+    }
 
-    const dir = vector.sub(this.camera.position).normalize();
+    this._vector = this._vector || new THREE.Vector3();
+    this._vector.set((event.clientX / window.innerWidth) * 2 - 1,
+                    -(event.clientY / window.innerHeight) * 2 + 1,
+                    0.5);
+    this._vector.unproject(this.camera);
+
+    const dir = this._vector.sub(this.camera.position).normalize();
     const distance = -this.camera.position.z / dir.z;
     const pos = this.camera.position.clone().add(dir.multiplyScalar(distance));
     this.mouseTarget.position.copy(pos);
