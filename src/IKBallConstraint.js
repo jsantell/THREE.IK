@@ -5,11 +5,13 @@ const Z_AXIS = new Vector3(0, 0, 1);
 const { DEG2RAD, RAD2DEG } = ThreeMath;
 
 /**
- * A class for a joint.
+ * A class for a constraint.
  */
-export default class IKBallConstraint {
+class IKBallConstraint {
   /**
-   * @param {THREE.Bone} bone
+   * Pass in an angle value in degrees.
+   *
+   * @param {number} angle
    */
   constructor(angle) {
     this.angle = angle;
@@ -21,9 +23,10 @@ export default class IKBallConstraint {
    * if the constraint was applied or not.
    *
    * @param {IKJoint} joint
+   * @private
    * @return {boolean}
    */
-  apply(joint) {
+  _apply(joint) {
 
     // Get direction of joint and parent in world space
     const direction = new Vector3().copy(joint._getDirection());
@@ -46,3 +49,5 @@ export default class IKBallConstraint {
     return false;
   }
 }
+
+export default IKBallConstraint;

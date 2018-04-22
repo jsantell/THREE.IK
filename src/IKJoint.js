@@ -10,6 +10,8 @@ const Y_AXIS = new Vector3(0, 1, 0);
 class IKJoint {
   /**
    * @param {THREE.Bone} bone
+   * @param {Object} config
+   * @param {Array<IKConstraint>} [config.constraints]
    */
   constructor(bone, { constraints } = {}) {
     this.constraints = constraints || [];
@@ -28,10 +30,9 @@ class IKJoint {
     this._updateWorldPosition();
   }
 
-  isSubBase() {
-    return this._isSubBase;
-  }
-
+  /**
+   * @private
+   */
   _setIsSubBase() {
     this._isSubBase = true;
     this._subBasePositions = [];
@@ -40,6 +41,8 @@ class IKJoint {
   /**
    * Consumes the stored sub base positions and apply it as this
    * joint's world position, clearing the sub base positions.
+   *
+   * @private
    */
   _applySubBasePositions() {
     if (this._subBasePositions.length === 0) {
@@ -50,21 +53,17 @@ class IKJoint {
   }
 
   /**
-   * ball
-   * hinge
-   * twist
-   *
-   * ball+twist?
+   * @private
    */
-  applyConstraints() {
+  _applyConstraints() {
     if (!this.constraints) {
       return;
     }
 
     let constraintApplied = false;
     for (let constraint of this.constraints) {
-      if (constraint && constraint.apply) {
-        let applied = constraint.apply(this);
+      if (constraint && constraint._apply) {
+        let applied = constraint._apply(this);
         constraintApplied = constraintApplied || applied;
       }
     }
@@ -80,45 +79,68 @@ class IKJoint {
     this.distance = distance;
   }
 
+  /**
+   * @private
+   */
   _getDirection() {
     return this._direction;
   }
 
+  /**
+   * @private
+   */
   _setDirection(direction) {
     this._direction.copy(direction);
   }
 
   /**
    * Gets the distance.
+   * @private
    * @return {THREE.Vector3}
    */
   _getDistance() {
     return this.distance;
   }
 
+  /**
+   * @private
+   */
   _updateMatrixWorld() {
     this.bone.updateMatrixWorld(true);
   }
 
   /**
+   * @private
    * @return {THREE.Vector3}
    */
   _getWorldPosition() {
     return this._worldPosition;
   }
 
+  /**
+   * @private
+   */
   _getWorldDirection(joint) {
     return new Vector3().subVectors(this._getWorldPosition(), joint._getWorldPosition()).normalize();
   }
 
+  /**
+   * @private
+   */
   _updateWorldPosition() {
     getWorldPosition(this.bone, this._worldPosition);
   }
 
+  /**
+   * @private
+   */
   _setWorldPosition(position) {
     this._worldPosition.copy(position);
   }
 
+  /**
+   * @private
+   */
   _localToWorldDirection(direction) {
     if (this.bone.parent) {
       const parent = this.bone.parent.matrixWorld;
@@ -127,6 +149,9 @@ class IKJoint {
     return direction;
   }
 
+  /**
+   * @private
+   */
   _worldToLocalDirection(direction) {
     if (this.bone.parent) {
       const inverseParent = new Matrix4().getInverse(this.bone.parent.matrixWorld);
@@ -135,6 +160,9 @@ class IKJoint {
     return direction;
   }
 
+  /**
+   * @private
+   */
   _applyWorldPosition() {
     let direction = new Vector3().copy(this._direction);
     let position = new Vector3().copy(this._getWorldPosition());
@@ -164,6 +192,7 @@ class IKJoint {
 
   /**
    * @param {IKJoint|THREE.Vector3}
+   * @private
    * @return {THREE.Vector3}
    */
   _getWorldDistance(joint) {

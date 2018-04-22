@@ -1,5 +1,10 @@
 import { Object3D, Color, Matrix4, AxesHelper, ArrowHelper, Mesh, ConeBufferGeometry, MeshLambertMaterial, Vector3 } from 'three';
 
+/**
+ * Mesh for representing an IKJoint.
+ * @private
+ * @extends {THREE.Object3d}
+ */
 class BoneHelper extends Object3D {
   /**
    * @param {number} height
@@ -36,12 +41,21 @@ class BoneHelper extends Object3D {
 
 /**
  * Class for visualizing an IK system.
+ * @extends {THREE.Object3d}
  */
-export default class IKHelper extends Object3D {
+class IKHelper extends Object3D {
 
   /**
-   * Create a chain.
-   *
+   * Creates a visualization for an IK.
+   * 
+   * @param {IK} ik
+   * @param {Object} config
+   * @param {THREE.Color} [config.color]
+   * @param {boolean} [config.showBones]
+   * @param {boolean} [config.showAxes]
+   * @param {boolean} [config.wireframe]
+   * @param {number} [config.axesSize]
+   * @param {number} [config.boneSize]
    */
   constructor(ik, { color, showBones, boneSize, showAxes, axesSize, wireframe } = {}) {
     super();
@@ -70,9 +84,40 @@ export default class IKHelper extends Object3D {
       }
     }
 
+    /**
+     * Whether this IKHelper's bones are visible or not.
+     *
+     * @name IKHelper#showBones
+     * @type boolean
+     * @default true
+     */
     this.showBones = showBones !== undefined ? showBones : true;
+    
+    /**
+     * Whether this IKHelper's axes are visible or not.
+     *
+     * @name IKHelper#showAxes
+     * @type boolean
+     * @default true
+     */
     this.showAxes = showAxes !== undefined ? showAxes : true;
+    
+    /**
+     * Whether this IKHelper should be rendered as wireframes or not.
+     *
+     * @name IKHelper#wireframe
+     * @type boolean
+     * @default true
+     */
     this.wireframe = wireframe !== undefined ? wireframe : true;
+    
+    /**
+     * The color of this IKHelper's bones.
+     *
+     * @name IKHelper#color
+     * @type THREE.Color
+     * @default new THREE.Color(0xff0077)
+     */
     this.color = color || new Color(0xff0077);
   }
 
@@ -140,3 +185,5 @@ export default class IKHelper extends Object3D {
     super.updateMatrixWorld(force);
   }
 }
+
+export default IKHelper;

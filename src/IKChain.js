@@ -7,7 +7,7 @@ import { getCentroid } from './utils.js';
  */
 class IKChain {
   /**
-   * Create a chain.
+   * Create an IKChain.
    */
   constructor() {
     this.isIKChain = true;
@@ -30,6 +30,7 @@ class IKChain {
   /**
    * Add an IKJoint to the end of this chain.
    *
+   * @param {IKJoint} joint
    * @param {Object} config
    * @param {THREE.Object3D} [config.target]
    */
@@ -86,14 +87,33 @@ class IKChain {
     return this;
   }
 
-  hasEffector() {
+  /**
+   * Returns a boolean indicating whether or not this chain has an end effector.
+   *
+   * @private
+   * @return {boolean}
+   */
+  _hasEffector() {
     return !!this.effector;
   }
 
-  getDistanceFromTarget() {
-    return this.hasEffector() ? this.effector._getWorldDistance(this.target) : -1;
+  /**
+   * Returns the distance from the end effector to the target. Returns -1 if
+   * this chain does not have an end effector.
+   *
+   * @private
+   * @return {number}
+   */
+  _getDistanceFromTarget() {
+    return this._hasEffector() ? this.effector._getWorldDistance(this.target) : -1;
   }
 
+  /**
+   * Connects another IKChain to this chain. The additional chain's root
+   * joint must be a member of this chain.
+   *
+   * @param {IKChain} chain
+   */
   connect(chain) {
     if (!chain.isIKChain) {
       throw new Error('Invalid connection in an IKChain. Must be an IKChain.');
@@ -129,6 +149,8 @@ class IKChain {
 
   /**
    * Update joint world positions for this chain.
+   *
+   * @private
    */
   _updateJointWorldPositions() {
     for (let joint of this.joints) {
@@ -136,7 +158,12 @@ class IKChain {
     }
   }
 
-  _backward() {
+  /**
+   * Runs the forward pass of the FABRIK algorithm.
+   *
+   * @private
+   */
+  _forward() {
     // Copy the origin so the forward step can use before `_backward()`
     // modifies it.
     this.origin.copy(this.base._getWorldPosition());
@@ -147,7 +174,7 @@ class IKChain {
       this._targetPosition.setFromMatrixPosition(this.target.matrixWorld);
       this.effector._setWorldPosition(this._targetPosition);
     }
-    else if (!this.joints[this.joints.length - 1].isSubBase()) {
+    else if (!this.joints[this.joints.length - 1]._isSubBase) {
       // If this chain doesn't have additional chains or a target,
       // not much to do here.
       return;
@@ -158,7 +185,7 @@ class IKChain {
     // not read from it.
     for (let i = 1; i < this.joints.length; i++) {
       const joint = this.joints[i];
-      if (joint.isSubBase()) {
+      if (joint._isSubBase) {
         joint._applySubBasePositions();
       }
     }
@@ -176,7 +203,7 @@ class IKChain {
       // @TODO Could this have an issue if a subchain `x`'s base
       // also had its own subchain `y`, rather than subchain `x`'s
       // parent also being subchain `y`'s parent?
-      if (prevJoint === this.base && this.base.isSubBase()) {
+      if (prevJoint === this.base && this.base._isSubBase) {
         this.base._subBasePositions.push(worldPosition);
       } else {
         prevJoint._setWorldPosition(worldPosition);
@@ -184,10 +211,15 @@ class IKChain {
     }
   }
 
-  _forward() {
+  /**
+   * Runs the backward pass of the FABRIK algorithm.
+   *
+   * @private
+   */
+  _backward() {
     // If base joint is a sub base, don't reset it's position back
     // to the origin, but leave it where the parent chain left it.
-    if (!this.base.isSubBase()) {
+    if (!this.base._isSubBase) {
       this.base._setWorldPosition(this.origin);
     }
 
@@ -199,7 +231,7 @@ class IKChain {
       const direction = nextJoint._getWorldDirection(joint);
       joint._setDirection(direction);
 
-      joint.applyConstraints();
+      joint._applyConstraints();
 
       direction.copy(joint._direction);
 
@@ -207,7 +239,7 @@ class IKChain {
       // to do this before the next joint iterates so it can generate rotations
       // in local space from its parent's matrixWorld.
       // If this is a chain sub base, let the parent chain apply the world position
-      if (!(this.base === joint && joint.isSubBase())) {
+      if (!(this.base === joint && joint._isSubBase)) {
         joint._applyWorldPosition();
       }
 
@@ -224,7 +256,7 @@ class IKChain {
       }
     }
 
-    return this.getDistanceFromTarget();
+    return this._getDistanceFromTarget();
   }
 }
 

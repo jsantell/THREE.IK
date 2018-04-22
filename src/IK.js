@@ -2,12 +2,12 @@ import { Matrix4, Vector3, Quaternion } from 'three';
 import IKChain from './IKChain.js';
 
 /**
- * Class representing IK
+ * Class representing IK structure.
  */
 class IK {
 
   /**
-   * Create a chain.
+   * Create an IK structure.
    *
    */
   constructor() {
@@ -87,15 +87,15 @@ class IK {
           subChains[i]._updateJointWorldPositions();
         }
 
-        // Run the chain's backward step starting with the deepest chains.
+        // Run the chain's forward step starting with the deepest chains.
         for (let i = subChains.length - 1; i >= 0; i--) {
-          subChains[i]._backward();
+          subChains[i]._forward();
         }
 
-        // Run the chain's forward step starting with the root chain.
+        // Run the chain's backward step starting with the root chain.
         let withinTolerance = true;
         for (let i = 0; i < subChains.length; i++) {
-          const distanceFromTarget = subChains[i]._forward();
+          const distanceFromTarget = subChains[i]._backward();
           if (distanceFromTarget > this.tolerance) {
             withinTolerance = false;
           }

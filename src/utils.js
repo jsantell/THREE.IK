@@ -1,23 +1,47 @@
 import { Vector3, Matrix4 } from 'three';
 
-export const getWorldPosition = (object, target) =>
-  target.setFromMatrixPosition(object.matrixWorld);
+/**
+ * A collection of utilities.
+ * @module utils
+ */
 
-export const getWorldDistance = (function () {
-  const a = new Vector3();
-  const b = new Vector3();
-  return (obj1, obj2) => {
-    getWorldPosition(obj1, a);
-    getWorldPosition(obj2, b);
-    return a.distanceTo(b);
-  };
-})();
+const t1 = new Vector3();
+const t2 = new Vector3();
+const t3 = new Vector3();
+const m1 = new Matrix4();
 
 /**
+ * Returns the world position of object and sets
+ * it on target.
+ *
+ * @param {THREE.Object3D} object
+ * @param {THREE.Vector3} target
+ */
+export function getWorldPosition(object, target) {
+  return target.setFromMatrixPosition(object.matrixWorld);
+}
+
+/**
+ * Returns the distance between two objects.
+ *
+ * @param {THREE.Object3D} obj1
+ * @param {THREE.Object3D} obj2
+ * @return {number}
+ */
+export function getWorldDistance(obj1, obj2) {
+  getWorldPosition(obj1, t1);
+  getWorldPosition(obj2, t2);
+  return a.distanceTo(b);
+}
+
+/**
+ * Sets the target to the centroid position between all passed in
+ * positions.
+ *
  * @param {Array<THREE.Vector3>} positions
  * @param {THREE.Vector3} target
  */
-export const getCentroid = (positions, target) => {
+export function getCentroid(positions, target) {
   target.set(0, 0, 0);
   for (let position of positions) {
     target.add(position);
@@ -35,47 +59,44 @@ export const getCentroid = (positions, target) => {
  *
  * @param {THREE.Vector3} direction
  * @param {THREE.Vector3} up
- * @param {THREE.Quaelrnion} target
+ * @param {THREE.Quaternion} target
  */
-export const setQuaternionFromDirection = (function () {
-  const x = new Vector3();
-  const y = new Vector3();
-  const z = new Vector3();
-  const m = new Matrix4();
+export function setQuaternionFromDirection(direction, up, target) {
+  const x = t1;
+  const y = t2;
+  const z = t3;
+  const m = m1;
+  const el = m1.elements;
 
-  return function (direction, up, target) {
-    const el = m.elements;
+  z.copy(direction);
+  x.crossVectors(up, z);
 
-    z.copy(direction);
-    x.crossVectors(up, z);
-
-    if (x.lengthSq() === 0) {
-      // parallel
-      if (Math.abs(up.z) === 1) {
-        z.x += 0.0001;
-      } else {
-        z.z += 0.0001;
-      }
-      z.normalize();
-      x.crossVectors(up, z);
+  if (x.lengthSq() === 0) {
+    // parallel
+    if (Math.abs(up.z) === 1) {
+      z.x += 0.0001;
+    } else {
+      z.z += 0.0001;
     }
-
-    x.normalize();
-    y.crossVectors(z, x);
-
-    el[ 0 ] = x.x; el[ 4 ] = y.x; el[ 8 ] = z.x;
-    el[ 1 ] = x.y; el[ 5 ] = y.y; el[ 9 ] = z.y;
-    el[ 2 ] = x.z; el[ 6 ] = y.z; el[ 10 ] = z.z;
-
-    target.setFromRotationMatrix(m);
+    z.normalize();
+    x.crossVectors(up, z);
   }
-})();
+
+  x.normalize();
+  y.crossVectors(z, x);
+
+  el[ 0 ] = x.x; el[ 4 ] = y.x; el[ 8 ] = z.x;
+  el[ 1 ] = x.y; el[ 5 ] = y.y; el[ 9 ] = z.y;
+  el[ 2 ] = x.z; el[ 6 ] = y.z; el[ 10 ] = z.z;
+
+  target.setFromRotationMatrix(m);
+}
 
 /**
  * Implementation of Unity's Transform.transformPoint, which is similar
  * to three's Vector3.transformDirection, except we want to take scale into account,
  * as we're not transforming a direction. Function taken from BabylonJS.
- * 
+ *
  * From BabylonJS's `Vector3.transformCoordinates`:
  * Sets the passed vector coordinates with the result of the transformation by the
  * passed matrix of the passed vector. This method computes tranformed coordinates only,
@@ -87,8 +108,8 @@ export const setQuaternionFromDirection = (function () {
  * @param {THREE.Matrix4} matrix
  * @param {THREE.Vector3} target
  */
-export const transformPoint = (vector, m, target) => {
-  const e = m.elements;
+export function transformPoint(vector, matrix, target) {
+  const e = matrix.elements;
 
   const x = (vector.x * e[0]) + (vector.y * e[4]) + (vector.z * e[8]) + e[12];
   const y = (vector.x * e[1]) + (vector.y * e[5]) + (vector.z * e[9]) + e[13];
