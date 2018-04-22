@@ -111,7 +111,7 @@ class IKApp {
     }
 
     for (let ik of this.iks) {
-      ik.update();
+      ik.solve();
     }
 
     this.renderer.render(this.scene, this.camera);

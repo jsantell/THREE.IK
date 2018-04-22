@@ -23,6 +23,7 @@ class IK {
      * An array of root chains for this IK system, each containing
      * an array of all subchains, including the root chain, for that
      * root chain, in descending-depth order.
+     * @private
      */
     this._orderedChains = null;
   }
@@ -43,6 +44,7 @@ class IK {
   /**
    * Called if there's been any changes to an IK structure.
    * Called internally. Not sure if this should be supported externally.
+   * @private
    */
   recalculate() {
     this._orderedChains = [];
@@ -67,14 +69,10 @@ class IK {
     }
   }
 
-  solve() {
-    return this.update.call(this);
-  }
-
   /**
    * Performs the IK solution and updates bones.
    */
-  update() {
+  solve() {
     // If we don't have a depth-sorted array of chains, generate it.
     // This is from the first `update()` call after creating.
     if (!this._orderedChains) {
@@ -120,6 +118,9 @@ class IK {
     }
   }
 
+  /**
+   * Returns the root bone of this structure.
+   */
   getRootBone() {
     return this.chains[0].base.bone;
   }
