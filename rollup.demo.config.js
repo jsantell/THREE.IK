@@ -2,30 +2,19 @@ const rollup = require('rollup');
 const commonjs = require('rollup-plugin-commonjs');
 const resolve = require('rollup-plugin-node-resolve');
 const cleanup = require('rollup-plugin-cleanup');
-const babel = require('rollup-plugin-babel');
 
 export default {
-  input: 'src/index.js',
+  input: 'demo/index.js',
   external: ['three'],
   output: [{
-    file: './build/ik.js',
+    file: './demo/build.js',
     format: 'umd',
-    name: 'IK',
-  }, {
-    file: './build/ik.module.js',
-    format: 'es',
+    name: 'App',
   }],
   globals: {
     'three': 'THREE',
   },
-  watch: {
-    include: 'src/**',
-  },
   plugins: [
-    babel({
-      plugins: ['external-helpers'],
-      exclude: 'node_modules/**',
-    }),
     resolve(),
     commonjs(),
     cleanup(),

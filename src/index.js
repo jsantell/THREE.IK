@@ -5,6 +5,6 @@ import IKJoint from './IKJoint.js';
 import IKBallConstraint from './IKBallConstraint.js';
 import IKHelper from './IKHelper.js';
 
-export default {
+export {
   IK, IKChain, IKJoint, IKBallConstraint, IKHelper
 };

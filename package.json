@@ -3,13 +3,17 @@
   "version": "1.0.0",
   "description": "",
   "main": "./build/ik.js",
+  "module": "./build/ik.module.js",
   "scripts": {
     "build": "rollup -c",
-    "watch": "rollup -c -w"
+    "watch": "rollup -c -w",
+    "build-demo": "rollup -c rollup.demo.config.js"
   },
   "author": "Jordan Santell <jordan@jsantell.com>",
   "license": "MIT",
   "devDependencies": {
+    "@jsantell/three-app": "^1.0.0",
+    "@jsantell/three-orbit-controls": "^1.0.0",
     "babel-core": "^6.24.1",
     "babel-plugin-external-helpers": "^6.22.0",
     "babel-preset-env": "^1.6.1",
