@@ -3,7 +3,8 @@
 	<head>
 		<title>THREE.IK examples</title>
 		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <link href="https://fonts.googleapis.com/css?family=Roboto:300,400" rel="stylesheet">
 		<style>
 
 			* {
@@ -19,7 +20,7 @@
 				margin: 0px;
 				height: 100%;
 				color: #555;
-				font-family: sans-serif;
+				font-family: Roboto, sans-serif;
 				font-size: 15px;
 				line-height: 18px;
 				overflow: hidden;
@@ -213,12 +214,20 @@
 				}
 			}
 
+            #title { color: #333; margin: 20px; }
+            #title img { vertical-align: middle; display: inline; width: 50px; }
+            #title h1 { vertical-align: middle;, font-weight: 300; margin: 5px 0px; display: inline; }
+            #title h1 a { text-decoration: none; color: #333; }
+            #title h1 span { font-weight: 400; }
 		</style>
 	</head>
 	<body>
 
-		<div id="panel">
-			<h1><a href="http://jsantell.github.io/THREE.IK">THREE.IK</a> / examples</h1>
+        <div id="panel">
+            <div id="title">
+                <img src="../assets/three-ik-graphic.png" />
+                <h1><a href="http://jsantell.github.io/THREE.IK">THREE<span>.IK</span></a></h1>
+            </div>
 			<a id="expandButton" href="#">
 				<span></span>
 				<span></span>
