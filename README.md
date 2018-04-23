@@ -1,14 +1,114 @@
+![THREE.IK](https://raw.github.com/jsantell/THREE.IK/master/assets/three-ik-graphic.png)
+
+# THREE.IK
+
+[![Build Status](http://img.shields.io/npm/v/three-ik.svg?style=flat-square)](https://www.npmjs.org/package/three-ik)
+
+## Installation
+
+`$ npm install --save three three-ik`
+
+or include the build at [dist/three-ik.js](dist/three-ik.js):
+
+```html
+<script src="dist/three-ik.js"></script>
+```
+
+## Usage
+
+You can use ES6 importing like so:
+
+```js
+import { IK, IKChain, IKJoint, IKBallConstraint, IKHelper } from 'three-ik';
+```
+
+And here's a full example if included via script tag, with THREE.IK classes
+defined on `THREE`.
+
+```js
+// Set up scene, camera, renderer
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 100);
+camera.position.z = 5;
+const renderer = new THREE.WebGLRenderer();
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const ik = new THREE.IK();
+
+const chain = new THREE.IKChain();
+const constraints = [new THREE.IKBallConstraint(90)];
+const bones = [];
+
+// Create a target that the IK's effector will reach
+// for.
+const movingTarget = new THREE.Mesh(new THREE.SphereGeometry(0.1), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+movingTarget.position.z = 2;
+const pivot = new THREE.Object3D();
+pivot.add(movingTarget);
+scene.add(pivot);
+
+// Create a chain of THREE.Bone's, each wrapped as an IKJoint
+// and added to the IKChain
+for (let i = 0; i < 10; i++) {
+  const bone = new THREE.Bone();
+  bone.position.y = i === 0 ? 0 : 0.5;
+
+  if (bones[i - 1]) { bones[i - 1].add(bone); }
+  bones.push(bone);
+
+  // The last IKJoint must be added with a `target` as an end effector.
+  const target = i === 9 ? movingTarget : null;
+  chain.add(new THREE.IKJoint(bone, { constraints }), { target });
+}
+
+// Add the chain to the IK system
+ik.add(chain);
+
+// Ensure the root bone is added somewhere in the scene
+scene.add(ik.getRootBone());
+
+// Create a helper and add to the scene so we can visualize
+// the bones
+const helper = new THREE.IKHelper(ik);
+scene.add(helper);
+
+function animate() {
+  pivot.rotation.x += 0.01;
+  pivot.rotation.y += 0.01;
+  pivot.rotation.z += 0.01;
+
+  ik.solve();
+
+  renderer.render(scene, camera);
+
+  requestAnimationFrame(animate);
+}
+
+animate()
+```
+
+## Documentation
+
+Full API documentation can be found at [https://jsantell.github.io/docs].
+
+## Build
+
+`$ npm run build`
 
 ## IK Resources
 
-[FABRIK: a fast, iterative solver for the inverse kinematics problem](http://www.andreasaristidou.com/FABRIK.html)
-[Roblox Inverse Kinematics FABRIK](http://wiki.roblox.com/index.php?title=Inverse_kinematics#FABRIK)
-[Create your own IK in Unity - Luis Bermudez](https://medium.com/unity3danimation/create-your-own-ik-in-unity3d-989debd86770)
+* [FABRIK: a fast, iterative solver for the inverse kinematics problem](http://www.andreasaristidou.com/FABRIK.html)
+* [Roblox Inverse Kinematics FABRIK](http://wiki.roblox.com/index.php?title=Inverse_kinematics#FABRIK)
+* [Create your own IK in Unity - Luis Bermudez](https://medium.com/unity3danimation/create-your-own-ik-in-unity3d-989debd86770)
+* [CCD Algorithm](https://sites.google.com/site/auraliusproject/ccd-algorithm)
+* [Inverse Kinematics with Quaternion Joint Limits - Jonathan Blow](http://number-none.com/product/IK%20with%20Quaternion%20Joint%20Limits/index.html)
+* [fullik: JS port of Caliko, Java implementation of FABRIK](https://github.com/lo-th/fullik)
+* [webIK: JS port of VRIK](https://github.com/etiennepinchon/webIK)
+* [fabrik-2d: JS 2D FABRIK](https://github.com/RGBboy/fabrik-2d)
+* [fabrik: Unity component](https://github.com/Tannz0rz/FABRIK)
 
-[CCD Algorithm](https://sites.google.com/site/auraliusproject/ccd-algorithm)
-[Inverse Kinematics with Quaternion Joint Limits - Jonathan Blow](http://number-none.com/product/IK%20with%20Quaternion%20Joint%20Limits/index.html)
+## License
 
-[fullik: JS port of Caliko, Java implementation of FABRIK](https://github.com/lo-th/fullik)
-[webIK: JS port of VRIK](https://github.com/etiennepinchon/webIK)
-[fabrik-2d: JS 2D FABRIK](https://github.com/RGBboy/fabrik-2d)
-[fabrik: Unity component](https://github.com/Tannz0rz/FABRIK)
+MIT License, Copyright © 2018 Jordan Santell
