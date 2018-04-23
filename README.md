@@ -1,4 +1,4 @@
-![THREE.IK](https://jsantell.github.io/THREE.IK/assets/three-ik-graphic-with-text.png | width=400)
+<img src="https://jsantell.github.io/THREE.IK/assets/three-ik-graphic-with-text.png" width="400" />
 
 [![Build Status](http://img.shields.io/npm/v/three-ik.svg?style=flat-square)](https://www.npmjs.org/package/three-ik)
 
@@ -109,7 +109,7 @@ Full API documentation can be found at [https://jsantell.github.io/docs].
 
 The logo and artwork was created by [Caitlyn Crites](http://www.caitlyncrites.com).
 
-![THREE.IK](https://jsantell.github.io/THREE.IK/assets/three-ik-graphic.png | width=100)
+<img src="https://jsantell.github.io/THREE.IK/assets/three-ik-graphic.png" width="100" />
 
 ## IK Resources
 
