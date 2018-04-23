@@ -1646,6 +1646,7 @@ class App extends App$1 {
     this.scene.add(this.mouseTarget);
     this.controls = new OrbitControls(this.camera);
     this.iks = [];
+    const constraints = [];
     for (let i = 0; i < ARM_COUNT; i++) {
       const chain = new IKChain();
       let lastBone = null;
@@ -1656,7 +1657,7 @@ class App extends App$1 {
           lastBone.add(bone);
         }
         const target = j === SEGMENT_COUNT - 1 ? this.mouseTarget: null;
-        chain.add(new IKJoint(bone), { target });
+        chain.add(new IKJoint(bone, { constraints }), { target });
         lastBone = bone;
       }
       const ik = new IK();
@@ -1714,6 +1715,7 @@ class App extends App$1 {
     this.mouseTarget.position.copy(pos);
   }
   update(t, delta) {
+    this.camera.rotation.z += delta * 0.0001;
     for (let ik of this.iks) {
       ik.solve();
     }

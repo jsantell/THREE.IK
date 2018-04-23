@@ -1,7 +1,7 @@
 import { Bone, Color, MeshBasicMaterial, Object3D } from 'three';
 import ThreeApp from '@jsantell/three-app';
 import OrbitControls from '@jsantell/three-orbit-controls';
-import { IK, IKChain, IKJoint, IKHelper } from '../';
+import { IK, IKChain, IKJoint, IKHelper, IKBallConstraint } from '../';
 
 const ARM_COUNT = 10;
 const SEGMENT_COUNT = 10;
@@ -19,6 +19,9 @@ class App extends ThreeApp {
     this.controls = new OrbitControls(this.camera);
 
     this.iks = [];
+    //const constraints = [new IKBallConstraint(180)];
+    const constraints = [];
+
     for (let i = 0; i < ARM_COUNT; i++) {
       const chain = new IKChain();
 
@@ -32,7 +35,7 @@ class App extends ThreeApp {
         }
 
         const target = j === SEGMENT_COUNT - 1 ? this.mouseTarget: null;
-        chain.add(new IKJoint(bone), { target });
+        chain.add(new IKJoint(bone, { constraints }), { target });
         lastBone = bone;
       }
 
@@ -104,7 +107,7 @@ class App extends ThreeApp {
   }
 
   update(t, delta) {
-
+    this.camera.rotation.z += delta * 0.0001;
     for (let ik of this.iks) {
       ik.solve();
     }
