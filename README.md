@@ -4,6 +4,14 @@
 
 # THREE.IK
 
+Inverse kinematics for [three.js].
+
+A work in progress, THREE.IK supports multiple chains with multiple effectors, solved via [FABRIK] iterative solver, and a ball-joint constraint. Best way to see how this works for now is to check out the [demo], [examples], and the [docs].
+
+:warning: **work in progress/request for feedback** :warning:
+
+There are many [open issues] regarding axis alignment, new constraints, alternative solvers, and an API overhaul. Discussion and solutions are welcome! There will be **breaking changes** between versions as an API is settled on.
+
 ## Installation
 
 `$ npm install --save three three-ik`
@@ -97,6 +105,12 @@ Full API documentation can be found at [https://jsantell.github.io/docs].
 
 `$ npm run build`
 
+## Logo
+
+The logo and artwork was created by [Caitlyn Crites](http://www.caitlyncrites.com).
+
+![THREE.IK](https://jsantell.github.io/THREE.IK/assets/three-ik-graphic.png | width=100)
+
 ## IK Resources
 
 * [FABRIK: a fast, iterative solver for the inverse kinematics problem](http://www.andreasaristidou.com/FABRIK.html)
@@ -112,3 +126,10 @@ Full API documentation can be found at [https://jsantell.github.io/docs].
 ## License
 
 MIT License, Copyright © 2018 Jordan Santell
+
+[three.js]: https://threejs.org
+[FABRIK]: http://www.andreasaristidou.com/FABRIK.html
+[open issues]: https://github.com/jsantell/THREE.IK/issues
+[demo]: https://jsantell.github.io/THREE.IK
+[examples]: https://jsantell.github.io/THREE.IK/examples
+[docs]: https://jsantell.github.io/THREE.IK/docs
