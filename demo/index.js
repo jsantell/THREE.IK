@@ -42,7 +42,7 @@ class App extends ThreeApp {
 
       const ik = new IK();
       ik.add(chain);
-      
+
       const rootBone = ik.getRootBone();
       const base = new Object3D();
       base.rotation.x = -Math.PI / 2;
@@ -74,13 +74,17 @@ class App extends ThreeApp {
     }
 
     this.camera.position.z = 4;
+    this.partyMode = /party-mode/.test(document.location.search);
 
+    this.onPartyModeToggle = this.onPartyModeToggle.bind(this);
     this.onMouseMove = this.onMouseMove.bind(this);
     this.onMouseDown = this.onMouseDown.bind(this);
     this.onMouseUp = this.onMouseUp.bind(this);
     window.addEventListener('mousemove', this.onMouseMove);
     window.addEventListener('mousedown', this.onMouseDown);
     window.addEventListener('mouseup', this.onMouseUp);
+    document.querySelector('#party-mode').addEventListener('click', this.onPartyModeToggle);
+    document.querySelector('#party-mode').innerText = `party mode ${this.partyMode ? 'on' : 'off'}`;
   }
 
   onMouseUp() {
@@ -108,16 +112,25 @@ class App extends ThreeApp {
     this.mouseTarget.position.copy(pos);
   }
 
+  onPartyModeToggle(e) {
+    this.partyMode = !this.partyMode;
+    e.target.innerText = `party mode ${this.partyMode ? 'on' : 'off'}`;
+    e.preventDefault();
+  }
+
   update(t, delta) {
     this.camera.rotation.z += delta * 0.0001;
     for (let ik of this.iks) {
       ik.solve();
-    } 
-    const temp = {};
-    for (let helper of this.helpers) {
-      for (let [joint, mesh] of helper._meshes) {
-        mesh.boneMesh.material.color.getHSL(temp);
-        mesh.boneMesh.material.color.setHSL((temp.h + 0.005) % 360, temp.s, temp.l);
+    }
+
+    if (this.partyMode) {
+      const temp = {};
+      for (let helper of this.helpers) {
+        for (let [joint, mesh] of helper._meshes) {
+          mesh.boneMesh.material.color.getHSL(temp);
+          mesh.boneMesh.material.color.setHSL((temp.h + 0.005) % 360, temp.s, temp.l);
+        }
       }
     }
   }

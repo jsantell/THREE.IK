@@ -4,7 +4,7 @@
         <title>ik</title>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-        <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css?family=Roboto:300" rel="stylesheet">
         <style>
             body {
                 font-family: Roboto, sans-serif;
@@ -15,10 +15,10 @@
             #info {
                 position: absolute;
                 bottom: 10px;
-                width: 30vw;
-                margin: 0 35vw;
+                width: 50vw;
+                margin: 0 25vw;
                 color: #333;
-                background-color: rgba(255, 255, 255, 0.3);
+                background-color: rgba(255, 255, 255, 0.5);
                 text-align: center;
                 z-index: 100;
                 display:block;
@@ -26,16 +26,30 @@
             }
             #info h1 {
                 font-weight: normal;
+                margin: 5px 0px;
+            }
+            #info h1 a {
+                text-decoration: none;
+            }
+            #info p {
+                margin: 5px 0px;
+                font-size: 90%;
+                color: #666;
             }
             #info a {
                 color: #333;
+                font-weight: bold;
             }
             ul {
+                margin: 0;
                 list-style-type: none;
                 padding-left: 0;
             }
             li {
                 display: inline;
+            }
+            li:not(:first-child)::before {
+                content: "| ";
             }
         </style>
     </head>
@@ -43,12 +57,14 @@
     <body>
 
         <div id="info">
-            <h1>THREE.IK</h1>
+            <h1><a href="https://github.com/jsantell/THREE.IK">THREE.IK</a></h1>
+            <p>inverse kinematics for <a href="https://threejs.org">three.js</a></p>
             <ul>
                 <li><a href="https://github.com/jsantell/THREE.IK/blob/master/README.md">README</a></li>
                 <li><a href="examples/">examples</a></li>
                 <li><a href="docs/">docs</a></li>
                 <li><a href="https://github.com/jsantell/THREE.IK">repository</a></li>
+                <li><a id="party-mode" href="#">party mode off</a></li>
             </ul>
         </div>
         <script src="examples/scripts/three.js"></script>
