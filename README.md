@@ -1,8 +1,8 @@
-![THREE.IK](https://raw.github.com/jsantell/THREE.IK/master/assets/three-ik-graphic.png)
-
-# THREE.IK
+![THREE.IK](https://jsantell.github.io/THREE.IK/assets/three-ik-graphic-with-text.png)
 
 [![Build Status](http://img.shields.io/npm/v/three-ik.svg?style=flat-square)](https://www.npmjs.org/package/three-ik)
+
+# THREE.IK
 
 ## Installation
 
