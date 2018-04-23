@@ -1,4 +1,4 @@
-import { Object3D, Color, Matrix4, AxesHelper, ArrowHelper, Mesh, ConeBufferGeometry, MeshLambertMaterial, Vector3 } from 'three';
+import { Object3D, Color, Matrix4, AxesHelper, ArrowHelper, Mesh, ConeBufferGeometry, MeshBasicMaterial, Vector3 } from 'three';
 
 /**
  * Mesh for representing an IKJoint.
@@ -20,7 +20,7 @@ class BoneHelper extends Object3D {
     if (height !== 0) {
       const geo = new ConeBufferGeometry(boneSize, height, 4);
       geo.applyMatrix(new Matrix4().makeRotationAxis(new Vector3(1, 0, 0), Math.PI/2));
-      this.boneMesh = new Mesh(geo, new MeshLambertMaterial({
+      this.boneMesh = new Mesh(geo, new MeshBasicMaterial({
         color: 0xff0000,
         wireframe: true,
         depthTest: false,
