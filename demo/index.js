@@ -3,9 +3,9 @@ import ThreeApp from '@jsantell/three-app';
 import OrbitControls from '@jsantell/three-orbit-controls';
 import { IK, IKChain, IKJoint, IKHelper, IKBallConstraint } from '../';
 
-const ARM_COUNT = 10;
-const SEGMENT_COUNT = 10;
-const SEGMENT_DISTANCE = 0.5;
+const ARM_COUNT = 15;
+const SEGMENT_COUNT = 15;
+const SEGMENT_DISTANCE = 0.4;
 const ARMS_RADIUS = 3;
 
 class App extends ThreeApp {
@@ -18,6 +18,7 @@ class App extends ThreeApp {
 
     this.controls = new OrbitControls(this.camera);
 
+    this.helpers = [];
     this.iks = [];
     //const constraints = [new IKBallConstraint(180)];
     const constraints = [];
@@ -67,6 +68,7 @@ class App extends ThreeApp {
 
         counter++;
       }
+      this.helpers.push(helper);
       this.scene.add(helper);
 
     }
@@ -110,6 +112,13 @@ class App extends ThreeApp {
     this.camera.rotation.z += delta * 0.0001;
     for (let ik of this.iks) {
       ik.solve();
+    } 
+    const temp = {};
+    for (let helper of this.helpers) {
+      for (let [joint, mesh] of helper._meshes) {
+        mesh.boneMesh.material.color.getHSL(temp);
+        mesh.boneMesh.material.color.setHSL((temp.h + 0.005) % 360, temp.s, temp.l);
+      }
     }
   }
 

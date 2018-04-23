@@ -1634,9 +1634,9 @@ var IKHelper = function (_Object3D2) {
   return IKHelper;
 }(three.Object3D);
 
-const ARM_COUNT = 10;
-const SEGMENT_COUNT = 10;
-const SEGMENT_DISTANCE = 0.5;
+const ARM_COUNT = 15;
+const SEGMENT_COUNT = 15;
+const SEGMENT_DISTANCE = 0.4;
 const ARMS_RADIUS = 3;
 class App extends App$1 {
   init() {
@@ -1645,6 +1645,7 @@ class App extends App$1 {
     this.mouseTarget = new three.Object3D();
     this.scene.add(this.mouseTarget);
     this.controls = new OrbitControls(this.camera);
+    this.helpers = [];
     this.iks = [];
     const constraints = [];
     for (let i = 0; i < ARM_COUNT; i++) {
@@ -1684,6 +1685,7 @@ class App extends App$1 {
         });
         counter++;
       }
+      this.helpers.push(helper);
       this.scene.add(helper);
     }
     this.camera.position.z = 4;
@@ -1718,6 +1720,13 @@ class App extends App$1 {
     this.camera.rotation.z += delta * 0.0001;
     for (let ik of this.iks) {
       ik.solve();
+    }
+    const temp = {};
+    for (let helper of this.helpers) {
+      for (let [joint, mesh] of helper._meshes) {
+        mesh.boneMesh.material.color.getHSL(temp);
+        mesh.boneMesh.material.color.setHSL((temp.h + 0.005) % 360, temp.s, temp.l);
+      }
     }
   }
   render() {
