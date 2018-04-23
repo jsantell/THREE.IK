@@ -99,7 +99,7 @@ animate()
 
 ## Documentation
 
-Full API documentation can be found at [https://jsantell.github.io/docs].
+Full API documentation can be found at https://jsantell.github.io/THREE.IK/docs.
 
 ## Build
 
