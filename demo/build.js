@@ -1674,7 +1674,7 @@ class App extends App$1 {
     }
     this.scene.add(new THREE.AmbientLight(0xffffff));
     for (let ik of this.iks) {
-      const helper = new IKHelper(ik);
+      const helper = new IKHelper(ik, { showAxes: false });
       let counter = 0;
       for (let [joint, mesh] of helper._meshes) {
         const color = new three.Color(`hsl(${(counter/SEGMENT_COUNT)*360}, 80%, 80%)`);
