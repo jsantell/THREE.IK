@@ -1,4 +1,4 @@
-![THREE.IK](https://jsantell.github.io/THREE.IK/assets/three-ik-graphic-with-text.png)
+![THREE.IK](https://jsantell.github.io/THREE.IK/assets/three-ik-graphic-with-text.png | width=400)
 
 [![Build Status](http://img.shields.io/npm/v/three-ik.svg?style=flat-square)](https://www.npmjs.org/package/three-ik)
 
@@ -8,10 +8,10 @@
 
 `$ npm install --save three three-ik`
 
-or include the build at [dist/three-ik.js](dist/three-ik.js):
+or include the build at [build/three-ik.js](build/three-ik.js):
 
 ```html
-<script src="dist/three-ik.js"></script>
+<script src="build/three-ik.js"></script>
 ```
 
 ## Usage

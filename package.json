@@ -2,13 +2,15 @@
   "name": "ik",
   "version": "1.0.0",
   "description": "",
-  "main": "./build/ik.js",
-  "module": "./build/ik.module.js",
+  "main": "./build/three-ik.js",
+  "module": "./build/three-ik.module.js",
   "scripts": {
     "build": "rollup -c",
     "watch": "rollup -c -w",
     "docs": "jsdoc -d docs src/*.js",
-    "build-demo": "rollup -c rollup.demo.config.js"
+    "build-demo": "rollup -c rollup.demo.config.js",
+    "version": "npm run build && npm run build-demo && npm add src/* demo/* examples/*",
+    "postversion": "git push && git push --tags && npm publish"
   },
   "author": "Jordan Santell <jordan@jsantell.com>",
   "license": "MIT",

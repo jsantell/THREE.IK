@@ -8,11 +8,11 @@ export default {
   input: 'src/index.js',
   external: ['three'],
   output: [{
-    file: './build/ik.js',
+    file: './build/three-ik.js',
     format: 'umd',
     name: 'IK',
   }, {
-    file: './build/ik.module.js',
+    file: './build/three-ik.module.js',
     format: 'es',
   }],
   globals: {

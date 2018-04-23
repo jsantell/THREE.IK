@@ -72,6 +72,16 @@ function transformPoint(vector, matrix, target) {
   target.set(x / w, y / w, z / w);
 }
 
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+  return typeof obj;
+} : function (obj) {
+  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+};
+
+
+
+
+
 var asyncGenerator = function () {
   function AwaitValue(value) {
     this.value = value;
@@ -845,7 +855,7 @@ var BoneHelper = function (_Object3D) {
     if (height !== 0) {
       var geo = new three.ConeBufferGeometry(boneSize, height, 4);
       geo.applyMatrix(new three.Matrix4().makeRotationAxis(new three.Vector3(1, 0, 0), Math.PI / 2));
-      _this.boneMesh = new three.Mesh(geo, new three.MeshLambertMaterial({
+      _this.boneMesh = new three.Mesh(geo, new three.MeshBasicMaterial({
         color: 0xff0000,
         wireframe: true,
         depthTest: false,
@@ -1153,6 +1163,14 @@ var IKHelper = function (_Object3D2) {
   }]);
   return IKHelper;
 }(three.Object3D);
+
+if (typeof window !== 'undefined' && _typeof(window.THREE) === 'object') {
+  window.THREE.IK = IK;
+  window.THREE.IKChain = IKChain;
+  window.THREE.IKJoint = IKJoint;
+  window.THREE.IKBallConstraint = IKBallConstraint;
+  window.THREE.IKHelper = IKHelper;
+}
 
 exports.IK = IK;
 exports.IKChain = IKChain;
