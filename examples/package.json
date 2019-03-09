@@ -1,0 +1,12 @@
+{
+  "name": "three.ik-examples",
+  "private": true,
+  "version": "0.0.1",
+  "description": "",
+  "author": "Jordan Santell",
+  "license": "MIT",
+  "dependencies": {
+    "dat.gui": "^0.7.5",
+    "three": "^0.102.1"
+  }
+}

@@ -1,4 +1,3 @@
-
 class SingleEffectorApp extends IKApp {
   setupIK() {
     const ik = new IK.IK();

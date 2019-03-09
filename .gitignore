@@ -1,6 +1,44 @@
-node_modules
 package-lock.json
 **/*.sw*
 .DS_Store
 .idea
 *.iml
+node_modules/**/*
+!folder/
+folder/*
+!folder/a/
+folder/a/*
+!folder/a/b1/
+!folder/a/b2/
+!folder/a/file.txt
+
+# Only include used dependencies, which requires
+# this fun .gitignore technique to ignore non-selected files.
+# https://stackoverflow.com/a/29932318
+
+!examples/node_modules/three/
+examples/node_modules/three/*
+!examples/node_modules/three/build/
+examples/node_modules/three/build/*
+!examples/node_modules/three/build/three.js
+!examples/node_modules/three/examples/
+examples/node_modules/three/examples/*
+!examples/node_modules/three/examples/js/
+examples/node_modules/three/examples/js/*
+!examples/node_modules/three/examples/js/controls/
+examples/node_modules/three/examples/js/controls/*
+!examples/node_modules/three/examples/js/controls/TransformControls.js
+!examples/node_modules/three/examples/js/controls/OrbitControls.js
+!examples/node_modules/three/examples/js/loaders/
+examples/node_modules/three/examples/js/loaders/*
+!examples/node_modules/three/examples/js/loaders/FBXLoader.js
+!examples/node_modules/three/examples/js/loaders/GLTFLoader.js
+!examples/node_modules/three/examples/js/libs/
+examples/node_modules/three/examples/js/libs/*
+!examples/node_modules/three/examples/js/libs/inflate.min.js
+
+!examples/node_modules/dat.gui/
+examples/node_modules/dat.gui/*
+!examples/node_modules/dat.gui/build/
+examples/node_modules/dat.gui/build/*
+!examples/node_modules/dat.gui/build/dat.gui.js
