@@ -96,6 +96,9 @@ class IKApp {
     this.scene.add(target);
     this.gizmos.push(gizmo);
 
+    gizmo.addEventListener('mouseDown', () => this.controls.enabled = false);
+    gizmo.addEventListener('mouseUp', () => this.controls.enabled = true);
+
     return target;
   }
 
@@ -107,7 +110,7 @@ class IKApp {
     }
 
     for (let gizmo of this.gizmos) {
-      gizmo.update();
+      //gizmo.update();
     }
 
     for (let ik of this.iks) {
