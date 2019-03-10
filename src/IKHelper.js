@@ -1,4 +1,4 @@
-import { Object3D, Color, Matrix4, AxesHelper, ArrowHelper, Mesh, ConeBufferGeometry, MeshBasicMaterial, Vector3 } from 'three';
+import { Object3D, Color, Matrix4, AxesHelper, Mesh, ConeBufferGeometry, MeshBasicMaterial, Vector3 } from 'three';
 
 /**
  * Mesh for representing an IKJoint.

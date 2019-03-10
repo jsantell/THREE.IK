@@ -1,4 +1,4 @@
-import { Quaternion, Matrix4, Vector3 } from 'three';
+import { Matrix4, Vector3 } from 'three';
 import { transformPoint, getCentroid, getWorldPosition, setQuaternionFromDirection } from './utils.js';
 import IKBallConstraint from './IKBallConstraint.js';
 
