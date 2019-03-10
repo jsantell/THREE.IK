@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>THREE.IK - skinned mesh test</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            font-family: Monospace;
+            background-color: #000;
+            color: #fff;
+            margin: 0px;
+            overflow: hidden;
+        }
+
+        #info {
+            color: #000;
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            z-index: 100;
+            display: block;
+        }
+
+        #info a {
+            color: #2fa1d6;
+            font-weight: bold;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div id="info">
+      skinned mesh example by <a href="https://codercat.tk" target="_blank" rel="noopener">codercat</a>
+    </div>
+    <script src="node_modules/dat.gui/build/dat.gui.js"></script>
+    <script src="node_modules/three/build/three.js"></script>
+    <script src="node_modules/three/examples/js/controls/OrbitControls.js"></script>
+    <script src="node_modules/three/examples/js/loaders/FBXLoader.js"></script>
+    <script src="scripts/IKApp.js"></script>
+    <script src="scripts/AxisUtils.js"></script>
+
+    <script src="../build/three-ik.js"></script>
+    <script>
+        class SingleTargetApp extends IKApp {
+            setupGUI() {
+                this.config.constraintType = 'ball';
+                this.config.constraintAngle = 90;
+
+            }
+
+            setupIK() {
+
+                var fbxLoader = new THREE.FBXLoader();
+                fbxLoader.load('assets/rigTest-02.fbx', (rigGroup) => {
+                this.scene.add(rigGroup)
+                rigGroup.updateMatrixWorld()
+
+                var rigMesh = rigGroup.children[0];
+                var rootBone = rigGroup.children[1].children[0]
+
+                /**
+                  This model's bind matrices are -Z forward, while the IK system operates in +Z Forward -- assuming
+                  the parent's +Z forward faces the child. This utility helps us recalculate the models bone matrices
+                  to be consistent with the IK system.
+                 **/
+                setZForward(rootBone);
+                //must rebind the skeleton to reset the bind matrix.
+                rigMesh.bind(rigMesh.skeleton)
+
+                rigMesh.material = new THREE.MeshPhysicalMaterial({
+                  skinning: true,
+                  wireframe: true
+                })
+                this.target = new THREE.Object3D()
+                this.target.position.set(0,0,5)
+                this.scene.add(this.target)
+
+                var boneGroup = rootBone;
+                var ik = new IK.IK();
+                const chain = new IK.IKChain();
+                var currentBone = boneGroup
+                for (let i = 0; i < 5; i++) {
+                  var constraints = [new IK.IKBallConstraint(90)];
+                  const target = i === 4 ? this.target : null;
+                  chain.add(new IK.IKJoint(currentBone, { constraints }), { target });
+                  currentBone = currentBone.children[0]
+                }
+                ik.add(chain);
+                const helper = new IK.IKHelper(ik);
+                this.scene.add(helper);
+                this.iks.push(ik)
+
+              }, console.log, console.log);
+            }
+
+            onChange() {
+                super.onChange();
+            }
+
+            update() {
+              if(this.target){
+                this.target.position.y = 5 + Math.sin(0.005 * performance.now())
+              }
+            }
+        };
+
+        window.app = new SingleTargetApp();
+
+    </script>
+</body>
+
+</html>
