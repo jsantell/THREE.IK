@@ -1,21 +1,13 @@
-package-lock.json
 **/*.sw*
 .DS_Store
 .idea
 *.iml
-node_modules/**/*
-!folder/
-folder/*
-!folder/a/
-folder/a/*
-!folder/a/b1/
-!folder/a/b2/
-!folder/a/file.txt
 
 # Only include used dependencies, which requires
 # this fun .gitignore technique to ignore non-selected files.
 # https://stackoverflow.com/a/29932318
 
+node_modules/**/*
 !examples/node_modules/three/
 examples/node_modules/three/*
 !examples/node_modules/three/build/
