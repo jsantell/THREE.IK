@@ -1,9 +1,12 @@
-import { AxesHelper, Color, ConeBufferGeometry, Math as Math$1, Matrix4, Mesh, MeshBasicMaterial, Object3D, Vector3 } from 'three';
+import { AxesHelper, Color, ConeBufferGeometry, Math as Math$1, Matrix4, Mesh, MeshBasicMaterial, Object3D, Plane, Quaternion, Vector3 } from 'three';
 
 var t1 = new Vector3();
 var t2 = new Vector3();
 var t3 = new Vector3();
 var m1 = new Matrix4();
+var t = new Vector3();
+var q = new Quaternion();
+var p = new Plane();
 function getWorldPosition(object, target) {
   return target.setFromMatrixPosition(object.matrixWorld);
 }
@@ -43,7 +46,7 @@ function setQuaternionFromDirection(direction, up, target) {
   var el = m1.elements;
   z.copy(direction);
   x.crossVectors(up, z);
-  if (x.lengthSq() === 0) {
+  if (x.lengthSq() == 0) {
     if (Math.abs(up.z) === 1) {
       z.x += 0.0001;
     } else {
@@ -66,6 +69,28 @@ function transformPoint(vector, matrix, target) {
   var z = vector.x * e[2] + vector.y * e[6] + vector.z * e[10] + e[14];
   var w = vector.x * e[3] + vector.y * e[7] + vector.z * e[11] + e[15];
   target.set(x / w, y / w, z / w);
+}
+function getAlignmentQuaternion(fromDir, toDir) {
+  var adjustAxis = t.crossVectors(fromDir, toDir).normalize();
+  var adjustAngle = fromDir.angleTo(toDir);
+  if (adjustAngle > 0.01 && adjustAngle < 3.14) {
+    var adjustQuat = q.setFromAxisAngle(adjustAxis, adjustAngle);
+    return adjustQuat;
+  }
+  return null;
+}
+function getAlignmentQuaternionOnPlane(toDir, fromDir, normal) {
+  p.normal = normal;
+  var projectedVec = p.projectPoint(toDir, new Vector3()).normalize();
+  var quat = getAlignmentQuaternion(fromDir, projectedVec);
+  return quat;
+}
+function rotateOnAxis(bone, direction, axis) {
+  var forward = new Vector3(0, 0, 1).applyQuaternion(bone.quaternion);
+  var q = getAlignmentQuaternionOnPlane(direction, forward, axis);
+  if (q) {
+    bone.quaternion.premultiply(q);
+  }
 }
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
@@ -368,6 +393,8 @@ var IKJoint = function () {
     this._isSubBase = false;
     this._subBasePositions = null;
     this.isIKJoint = true;
+    this._originalUp = new Vector3(0, 1, 0);
+    this._originalUp.applyQuaternion(this.bone.quaternion).normalize();
     this._updateWorldPosition();
   }
   createClass(IKJoint, [{
@@ -495,7 +522,11 @@ var IKJoint = function () {
         this.bone.position.copy(position);
         this._updateMatrixWorld();
         this._worldToLocalDirection(direction);
-        setQuaternionFromDirection(direction, Y_AXIS, this.bone.quaternion);
+        if (this.constraints[0] && this.constraints[0].type === "hinge") {
+          rotateOnAxis(this.bone, direction, this.constraints[0].axis);
+        } else {
+          setQuaternionFromDirection(direction, this._originalUp, this.bone.quaternion);
+        }
       } else {
         this.bone.position.copy(position);
       }
@@ -843,6 +874,46 @@ var IK = function () {
   return IK;
 }();
 
+var Z_AXIS$1 = new Vector3(0, 0, -1);
+var X_AXIS = new Vector3(1, 0, 0);
+var t1$1 = new Vector3();
+var t2$1 = new Vector3();
+var t3$1 = new Vector3();
+var t4 = new Vector3();
+var RAD2DEG$1 = Math$1.RAD2DEG;
+var IKHingeConstraint = function () {
+  function IKHingeConstraint(angle, axis) {
+    classCallCheck(this, IKHingeConstraint);
+    this.axis = axis;
+    this.angle = angle;
+    this.type = "hinge";
+    this.rotationPlane = new Plane(this.axis);
+  }
+  createClass(IKHingeConstraint, [{
+    key: '_apply',
+    value: function _apply(joint) {
+      var direction = new Vector3().copy(joint._getDirection());
+      var parentDirection = joint._localToWorldDirection(t1$1.copy(Z_AXIS$1)).normalize();
+      var rotationPlaneNormal = joint._localToWorldDirection(t2$1.copy(this.axis)).normalize();
+      this.rotationPlane.normal = rotationPlaneNormal;
+      var projectedDir = this.rotationPlane.projectPoint(direction, new Vector3());
+      var parentDirectionProjected = this.rotationPlane.projectPoint(parentDirection, t3$1);
+      var currentAngle = projectedDir.angleTo(parentDirectionProjected) * RAD2DEG$1;
+      var cross = t4.crossVectors(projectedDir, parentDirectionProjected);
+      if (cross.dot(rotationPlaneNormal) > 0) {
+        currentAngle += 180;
+      }
+      if (currentAngle > this.angle) {
+        parentDirectionProjected.applyAxisAngle(rotationPlaneNormal, this.angle / RAD2DEG$1);
+        joint._setDirection(parentDirectionProjected);
+      } else {
+        joint._setDirection(projectedDir);
+      }
+    }
+  }]);
+  return IKHingeConstraint;
+}();
+
 var BoneHelper = function (_Object3D) {
   inherits(BoneHelper, _Object3D);
   function BoneHelper(height, boneSize, axesSize) {
@@ -1165,7 +1236,8 @@ if (typeof window !== 'undefined' && _typeof(window.THREE) === 'object') {
   window.THREE.IKChain = IKChain;
   window.THREE.IKJoint = IKJoint;
   window.THREE.IKBallConstraint = IKBallConstraint;
+  window.THREE.IKHingeConstraint = IKHingeConstraint;
   window.THREE.IKHelper = IKHelper;
 }
 
-export { IK, IKChain, IKJoint, IKBallConstraint, IKHelper };
+export { IK, IKChain, IKJoint, IKBallConstraint, IKHingeConstraint, IKHelper };
