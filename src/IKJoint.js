@@ -21,6 +21,7 @@ class IKJoint {
     this.distance = 0;
 
     this._originalDirection = new Vector3();
+    this._originalHinge = new Vector3();
     this._direction = new Vector3();
     this._worldPosition = new Vector3();
     this._isSubBase = false;
@@ -178,13 +179,7 @@ class IKJoint {
       this.bone.position.copy(position);
       this._updateMatrixWorld();
       this._worldToLocalDirection(direction);
-      if (this.constraints[0] && this.constraints[0].type === "hinge") {
-        rotateOnAxis(this.bone, direction, this.constraints[0].axis);
-      } else {
-        //TODO: make a flag to not use original up if you are not using hinge constraints
-        //with predefined axis that need to stay constant.
-        setQuaternionFromDirection(direction, this._originalUp, this.bone.quaternion);
-      }
+      setQuaternionFromDirection(direction, Y_AXIS, this.bone.quaternion);
     } else {
       this.bone.position.copy(position);
     }

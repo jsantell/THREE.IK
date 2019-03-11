@@ -70,28 +70,6 @@ function transformPoint(vector, matrix, target) {
   var w = vector.x * e[3] + vector.y * e[7] + vector.z * e[11] + e[15];
   target.set(x / w, y / w, z / w);
 }
-function getAlignmentQuaternion(fromDir, toDir) {
-  var adjustAxis = t.crossVectors(fromDir, toDir).normalize();
-  var adjustAngle = fromDir.angleTo(toDir);
-  if (adjustAngle > 0.01 && adjustAngle < 3.14) {
-    var adjustQuat = q.setFromAxisAngle(adjustAxis, adjustAngle);
-    return adjustQuat;
-  }
-  return null;
-}
-function getAlignmentQuaternionOnPlane(toDir, fromDir, normal) {
-  p.normal = normal;
-  var projectedVec = p.projectPoint(toDir, new Vector3()).normalize();
-  var quat = getAlignmentQuaternion(fromDir, projectedVec);
-  return quat;
-}
-function rotateOnAxis(bone, direction, axis) {
-  var forward = new Vector3(0, 0, 1).applyQuaternion(bone.quaternion);
-  var q = getAlignmentQuaternionOnPlane(direction, forward, axis);
-  if (q) {
-    bone.quaternion.premultiply(q);
-  }
-}
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
   return typeof obj;
@@ -388,6 +366,7 @@ var IKJoint = function () {
     this.bone = bone;
     this.distance = 0;
     this._originalDirection = new Vector3();
+    this._originalHinge = new Vector3();
     this._direction = new Vector3();
     this._worldPosition = new Vector3();
     this._isSubBase = false;
@@ -522,11 +501,7 @@ var IKJoint = function () {
         this.bone.position.copy(position);
         this._updateMatrixWorld();
         this._worldToLocalDirection(direction);
-        if (this.constraints[0] && this.constraints[0].type === "hinge") {
-          rotateOnAxis(this.bone, direction, this.constraints[0].axis);
-        } else {
-          setQuaternionFromDirection(direction, this._originalUp, this.bone.quaternion);
-        }
+        setQuaternionFromDirection(direction, Y_AXIS, this.bone.quaternion);
       } else {
         this.bone.position.copy(position);
       }
@@ -580,6 +555,7 @@ var IKChain = function () {
       }
       else {
           var previousJoint = this.joints[this.joints.length - 2];
+          var previousPreviousJoint = this.joints[this.joints.length - 3];
           previousJoint._updateMatrixWorld();
           previousJoint._updateWorldPosition();
           joint._updateWorldPosition();
@@ -591,7 +567,9 @@ var IKChain = function () {
           joint._updateWorldPosition();
           var direction = previousJoint._getWorldDirection(joint);
           previousJoint._originalDirection = new Vector3().copy(direction);
-          joint._originalDirection = new Vector3().copy(direction);
+          if (previousPreviousJoint) {
+            previousJoint._originalHinge = previousJoint._worldToLocalDirection(previousJoint._originalDirection.clone().cross(previousPreviousJoint._originalDirection).normalize());
+          }
           this.totalLengths += distance;
         }
       if (target) {
@@ -882,19 +860,17 @@ var t3$1 = new Vector3();
 var t4 = new Vector3();
 var RAD2DEG$1 = Math$1.RAD2DEG;
 var IKHingeConstraint = function () {
-  function IKHingeConstraint(angle, axis) {
+  function IKHingeConstraint(angle) {
     classCallCheck(this, IKHingeConstraint);
-    this.axis = axis;
     this.angle = angle;
-    this.type = "hinge";
-    this.rotationPlane = new Plane(this.axis);
+    this.rotationPlane = new Plane();
   }
   createClass(IKHingeConstraint, [{
     key: '_apply',
     value: function _apply(joint) {
       var direction = new Vector3().copy(joint._getDirection());
       var parentDirection = joint._localToWorldDirection(t1$1.copy(Z_AXIS$1)).normalize();
-      var rotationPlaneNormal = joint._localToWorldDirection(t2$1.copy(this.axis)).normalize();
+      var rotationPlaneNormal = joint._localToWorldDirection(t2$1.copy(joint._originalHinge)).normalize();
       this.rotationPlane.normal = rotationPlaneNormal;
       var projectedDir = this.rotationPlane.projectPoint(direction, new Vector3());
       var parentDirectionProjected = this.rotationPlane.projectPoint(parentDirection, t3$1);

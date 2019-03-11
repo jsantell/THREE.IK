@@ -16,17 +16,14 @@ const { DEG2RAD, RAD2DEG } = ThreeMath;
  */
 class IKHingeConstraint {
   /**
-   * Pass in an angle value in degrees, and axis of rotation.
-   * Axis of rotation must be in local coordinates.
+   * Pass in an angle value in degrees,
+   * Axis of rotation for the constraint is calculated from initial bone positions.
    *
    * @param {number} angle
-   * @param {Vector3} axis
    */
-  constructor(angle, axis) {
-    this.axis = axis;
+  constructor(angle) {
     this.angle = angle;
-    this.type = "hinge"
-    this.rotationPlane = new Plane(this.axis);
+    this.rotationPlane = new Plane();
   }
 
   /**
@@ -41,7 +38,7 @@ class IKHingeConstraint {
     // Get direction of joint and parent in world space
     const direction = new Vector3().copy(joint._getDirection());
     const parentDirection = joint._localToWorldDirection(t1.copy(Z_AXIS)).normalize();
-    const rotationPlaneNormal = joint._localToWorldDirection(t2.copy(this.axis)).normalize();
+    const rotationPlaneNormal = joint._localToWorldDirection(t2.copy(joint._originalHinge)).normalize();
     this.rotationPlane.normal = rotationPlaneNormal;
     var projectedDir = this.rotationPlane.projectPoint(direction, new Vector3())
 

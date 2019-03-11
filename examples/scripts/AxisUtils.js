@@ -50,9 +50,8 @@ function updateTransformations(parentBone, worldPos, scene) {
     //get the child bone position in local coordinates
     var childBoneDir = parentBone.worldToLocal(averagedDir.clone()).normalize();
 
-    //preserve the original up vectors
-    var up = _worldToLocalDirection(worldPos[parentBone.id][1].clone(), parentBone)
-    setQuaternionFromDirection(childBoneDir, up, parentBone.quaternion)
+    //set direction to face child
+    setQuaternionFromDirection(childBoneDir, Y_AXIS, parentBone.quaternion)
     parentBone.updateMatrixWorld();
 
     //set child bone position relative to the new parent matrix.
@@ -101,21 +100,20 @@ function setQuaternionFromDirection(direction, up, target) {
 
 function getOriginalWorldPositions(rootBone, worldPos) {
   var rootBoneWorldPos = rootBone.getWorldPosition(new THREE.Vector3())
-  var rootBoneUpDir = _localToWorldDirection(Y_AXIS.clone(), rootBone);
-  worldPos[rootBone.id] = [rootBoneWorldPos, rootBoneUpDir];
+  worldPos[rootBone.id] = [rootBoneWorldPos];
   rootBone.children.forEach((child) => {
     getOriginalWorldPositions(child, worldPos)
   })
 }
 
-function _worldToLocalDirection(direction, sparent) {
-    const inverseParent = new THREE.Matrix4().getInverse(sparent.matrixWorld);
+function _worldToLocalDirection(direction, parent) {
+    const inverseParent = new THREE.Matrix4().getInverse(parent.matrixWorld);
     direction.transformDirection(inverseParent);
   return direction;
 }
 
-function _localToWorldDirection(direction, sparent) {
-  const parent = sparent.matrixWorld;
-  direction.transformDirection(parent);
+function _localToWorldDirection(direction, parent) {
+  const parentMat = parent.matrixWorld;
+  direction.transformDirection(parentMat);
   return direction;
 }
