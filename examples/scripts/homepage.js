@@ -19,9 +19,9 @@ class App {
     this.gui = new dat.GUI({ autoPlace: !DEMO_MODE && !isMobile() });
     this.config = {
       rotationSpeed: -4.5,
-      showTarget: true,
-      followMouse: false,
-      constraintAngle: 60,
+      showTarget: isMobile() || DEMO_MODE,
+      followMouse: !isMobile() && !DEMO_MODE,
+      constraintAngle: 75,
     };
 
     this.gui.add(this.config, 'rotationSpeed').min(-10).max(10).step(0.5);
@@ -140,16 +140,6 @@ class App {
     this.mousePosition.set((event.clientX / window.innerWidth) * 2 - 1,
                     -(event.clientY / window.innerHeight) * 2 + 1,
                     0.4);
-
-    return;
-
-    this._mouseVector.copy(this.mousePosition);
-    const dir = this._mouseVector.sub(this.camera.position).normalize();
-    const distance = -this.camera.position.z / dir.z;
-    const pos = this.camera.position.clone().add(dir.multiplyScalar(distance));
-    this.target.position.copy(pos);
-    this.target.position.z = 0.2;
-
   }
 
   onPartyModeToggle(e) {
@@ -161,15 +151,6 @@ class App {
   moveTargetToMouse() {
     this.target.position.copy(this.mousePosition)
     this.target.position.unproject(this.camera);
-    console.log(this.target.position);
-    //this.target.position.z = 0.1;
-    return;
-
-    const dir = this._mouseVector.sub(this.camera.position).normalize();
-    const distance = -this.camera.position.z / dir.z;
-    const pos = this.camera.position.clone().add(dir.multiplyScalar(distance));
-    this.target.position.copy(pos);
-    this.target.position.z = 0.2;
   }
 
   render() {
