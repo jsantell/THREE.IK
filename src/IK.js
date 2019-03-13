@@ -1,4 +1,3 @@
-import { Matrix4, Vector3, Quaternion } from 'three';
 import IKChain from './IKChain.js';
 
 /**

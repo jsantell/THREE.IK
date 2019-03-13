@@ -7,14 +7,10 @@
  *
  **/
 
-const t = new THREE.Vector3();
-const q = new THREE.Quaternion();
-const p = new THREE.Plane();
 const t1 = new THREE.Vector3();
 const t2 = new THREE.Vector3();
 const t3 = new THREE.Vector3();
 const m1 = new THREE.Matrix4();
-const FORWARD = new THREE.Vector3(0,0,1);
 var RESETQUAT = new THREE.Quaternion();
 
 /**

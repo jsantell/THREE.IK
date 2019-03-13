@@ -1,4 +1,4 @@
-import { Matrix4, Vector3 } from 'three';
+import { Vector3 } from 'three';
 import IKJoint from './IKJoint.js';
 import { getCentroid } from './utils.js';
 

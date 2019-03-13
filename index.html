@@ -18,7 +18,7 @@
         <style>
             body {
                 font-family: Roboto, sans-serif;
-                background-color: #000;
+                background-color: #efefef;
                 margin: 0px;
                 overflow: hidden;
                 font-weight: 300;
@@ -38,7 +38,7 @@
             #title {
                 margin-top: 10px;
             }
-            img {
+            #logo {
                 vertical-align: middle;
                 display: inline;
                 width: 100px;
@@ -67,15 +67,15 @@
             #info li a {
                 font-weight: 400;
             }
-            ul {
+            #info ul {
                 margin: 0;
                 list-style-type: none;
                 padding-left: 0;
             }
-            li {
+            #info li {
                 display: inline;
             }
-            li:not(:first-child)::before {
+            #info li:not(:first-child)::before {
                 content: "| ";
             }
         </style>
@@ -85,7 +85,7 @@
 
         <div id="info">
             <div id="title">
-                <img alt="THREE.IK" src="assets/three-ik-graphic.png" />
+                <img id="logo" alt="THREE.IK" src="assets/three-ik-graphic.png" />
                 <h1><a href="https://github.com/jsantell/THREE.IK">THREE<span>.IK</span></a></h1>
             </div>
             <p>inverse kinematics for <a href="https://threejs.org">three.js</a> |
@@ -98,7 +98,9 @@
                 <li><a title="PARTY MODE?" id="party-mode" href="#">party mode off</a></li>
             </ul>
         </div>
-        <script src="examples/scripts/three.js"></script>
-        <script src="demo/build.js"></script>
+        <script src="examples/node_modules/dat.gui/build/dat.gui.js"></script>
+        <script src="examples/node_modules/three/build/three.js"></script>
+        <script src="build/three-ik.js"></script>
+        <script src="examples/scripts/homepage.js"></script>
     </body>
 </html>
