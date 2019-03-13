@@ -182,7 +182,6 @@ class IKJoint {
 
       this._worldToLocalDirection(direction);
       setQuaternionFromDirection(direction, Y_AXIS, this.bone.quaternion);
-      
     } else {
       this.bone.position.copy(position);
     }

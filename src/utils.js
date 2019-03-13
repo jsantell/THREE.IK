@@ -72,7 +72,7 @@ export function setQuaternionFromDirection(direction, up, target) {
   x.crossVectors(up, z);
 
 
-  if (x.lengthSq() == 0) {
+  if (x.lengthSq() === 0) {
     // parallel
     if (Math.abs(up.z) === 1) {
       z.x += 0.0001;
