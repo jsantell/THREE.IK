@@ -8,9 +8,6 @@ var t1 = new three.Vector3();
 var t2 = new three.Vector3();
 var t3 = new three.Vector3();
 var m1 = new three.Matrix4();
-var t = new three.Vector3();
-var q = new three.Quaternion();
-var p = new three.Plane();
 function getWorldPosition(object, target) {
   return target.setFromMatrixPosition(object.matrixWorld);
 }
@@ -571,6 +568,7 @@ var IKChain = function () {
           joint._updateWorldPosition();
           var direction = previousJoint._getWorldDirection(joint);
           previousJoint._originalDirection = new three.Vector3().copy(direction);
+          joint._originalDirection = new three.Vector3().copy(direction);
           if (previousPreviousJoint) {
             previousJoint._originalHinge = previousJoint._worldToLocalDirection(previousJoint._originalDirection.clone().cross(previousPreviousJoint._originalDirection).normalize());
           }

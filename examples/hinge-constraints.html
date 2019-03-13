@@ -111,7 +111,8 @@
 
             update() {
               if(this.target){
-                this.target.position.y = 2+4*Math.sin(0.003*performance.now())
+                this.target.position.y = 2 + 2 * Math.sin(0.003 * performance.now())
+                this.target.position.x = 1 + 2 * Math.sin(0.003 * performance.now())
               }
             }
         };

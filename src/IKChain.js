@@ -75,6 +75,8 @@ class IKChain {
       joint._updateWorldPosition();
       const direction = previousJoint._getWorldDirection(joint);
       previousJoint._originalDirection = new Vector3().copy(direction);
+      joint._originalDirection = new Vector3().copy(direction);
+
       if(previousPreviousJoint){
         previousJoint._originalHinge = previousJoint._worldToLocalDirection(previousJoint._originalDirection.clone().cross(previousPreviousJoint._originalDirection).normalize());
       }

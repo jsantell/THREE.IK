@@ -1,5 +1,5 @@
 import { Quaternion, Matrix4, Vector3 } from 'three';
-import { transformPoint, getCentroid, getWorldPosition, setQuaternionFromDirection, rotateOnAxis } from './utils.js';
+import { transformPoint, getCentroid, getWorldPosition, setQuaternionFromDirection } from './utils.js';
 import IKBallConstraint from './IKBallConstraint.js';
 
 const Y_AXIS = new Vector3(0, 1, 0);
@@ -177,9 +177,12 @@ class IKJoint {
       let inverseParent = new Matrix4().getInverse(this.bone.parent.matrixWorld);
       transformPoint(position, inverseParent, position);
       this.bone.position.copy(position);
+
       this._updateMatrixWorld();
+
       this._worldToLocalDirection(direction);
       setQuaternionFromDirection(direction, Y_AXIS, this.bone.quaternion);
+      
     } else {
       this.bone.position.copy(position);
     }

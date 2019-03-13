@@ -1,12 +1,9 @@
-import { AxesHelper, Color, ConeBufferGeometry, Math as Math$1, Matrix4, Mesh, MeshBasicMaterial, Object3D, Plane, Quaternion, Vector3 } from 'three';
+import { AxesHelper, Color, ConeBufferGeometry, Math as Math$1, Matrix4, Mesh, MeshBasicMaterial, Object3D, Plane, Vector3 } from 'three';
 
 var t1 = new Vector3();
 var t2 = new Vector3();
 var t3 = new Vector3();
 var m1 = new Matrix4();
-var t = new Vector3();
-var q = new Quaternion();
-var p = new Plane();
 function getWorldPosition(object, target) {
   return target.setFromMatrixPosition(object.matrixWorld);
 }
@@ -567,6 +564,7 @@ var IKChain = function () {
           joint._updateWorldPosition();
           var direction = previousJoint._getWorldDirection(joint);
           previousJoint._originalDirection = new Vector3().copy(direction);
+          joint._originalDirection = new Vector3().copy(direction);
           if (previousPreviousJoint) {
             previousJoint._originalHinge = previousJoint._worldToLocalDirection(previousJoint._originalDirection.clone().cross(previousPreviousJoint._originalDirection).normalize());
           }

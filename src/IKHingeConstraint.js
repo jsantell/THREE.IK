@@ -1,5 +1,4 @@
-import { Quaternion, Matrix4, Vector3, Plane, Math as ThreeMath } from 'three';
-import { transformPoint, getCentroid, getWorldPosition, setQuaternionFromDirection } from './utils.js';
+import { Quaternion, Vector3, Plane, Math as ThreeMath } from 'three';
 
 const Z_AXIS = new Vector3(0, 0, -1);
 const X_AXIS = new Vector3(1, 0, 0);
