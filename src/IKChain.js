@@ -60,6 +60,8 @@ class IKChain {
     // and update the total length.
     else {
       const previousJoint = this.joints[this.joints.length - 2];
+      const previousPreviousJoint = this.joints[this.joints.length - 3];
+
       previousJoint._updateMatrixWorld();
       previousJoint._updateWorldPosition();
       joint._updateWorldPosition();
@@ -75,6 +77,9 @@ class IKChain {
       previousJoint._originalDirection = new Vector3().copy(direction);
       joint._originalDirection = new Vector3().copy(direction);
 
+      if(previousPreviousJoint){
+        previousJoint._originalHinge = previousJoint._worldToLocalDirection(previousJoint._originalDirection.clone().cross(previousPreviousJoint._originalDirection).normalize());
+      }
       this.totalLengths += distance;
     }
 

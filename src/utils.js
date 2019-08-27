@@ -71,6 +71,7 @@ export function setQuaternionFromDirection(direction, up, target) {
   z.copy(direction);
   x.crossVectors(up, z);
 
+
   if (x.lengthSq() === 0) {
     // parallel
     if (Math.abs(up.z) === 1) {
