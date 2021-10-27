@@ -47,7 +47,7 @@ class BoneHelper extends Object3D {
     // will fall back to its default and not use 0 height.
     if (height !== 0) {
       const geo = new ConeBufferGeometry(boneSize, height, 4);
-      geo.applyMatrix(new Matrix4().makeRotationAxis(new Vector3(1, 0, 0), Math.PI/2));
+      geo.applyMatrix4(new Matrix4().makeRotationAxis(new Vector3(1, 0, 0), Math.PI/2));
       this.boneMesh = new Mesh(geo, new MeshLambertMaterial({
         color: 0xff0000,
         wireframe: true,

@@ -481,7 +481,7 @@ var IKJoint = function () {
     key: '_worldToLocalDirection',
     value: function _worldToLocalDirection(direction) {
       if (this.bone.parent) {
-        var inverseParent = new three.Matrix4().getInverse(this.bone.parent.matrixWorld);
+        var inverseParent = new three.Matrix4().copy(this.bone.parent.matrixWorld).invert();
         direction.transformDirection(inverseParent);
       }
       return direction;
@@ -494,7 +494,7 @@ var IKJoint = function () {
       var parent = this.bone.parent;
       if (parent) {
         this._updateMatrixWorld();
-        var inverseParent = new three.Matrix4().getInverse(this.bone.parent.matrixWorld);
+        var inverseParent = new three.Matrix4().copy(this.bone.parent.matrixWorld).invert();
         transformPoint(position, inverseParent, position);
         this.bone.position.copy(position);
         this._updateMatrixWorld();
@@ -854,7 +854,7 @@ var BoneHelper = function (_Object3D) {
     var _this = possibleConstructorReturn(this, (BoneHelper.__proto__ || Object.getPrototypeOf(BoneHelper)).call(this));
     if (height !== 0) {
       var geo = new three.ConeBufferGeometry(boneSize, height, 4);
-      geo.applyMatrix(new three.Matrix4().makeRotationAxis(new three.Vector3(1, 0, 0), Math.PI / 2));
+      geo.applyMatrix4(new three.Matrix4().makeRotationAxis(new three.Vector3(1, 0, 0), Math.PI / 2));
       _this.boneMesh = new three.Mesh(geo, new three.MeshBasicMaterial({
         color: 0xff0000,
         wireframe: true,
