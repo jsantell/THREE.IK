@@ -21,12 +21,15 @@ class IKJoint {
     this.distance = 0;
 
     this._originalDirection = new Vector3();
+    this._originalHinge = new Vector3();
     this._direction = new Vector3();
     this._worldPosition = new Vector3();
     this._isSubBase = false;
     this._subBasePositions = null;
     this.isIKJoint = true;
 
+    this._originalUp = new Vector3(0,1,0);
+    this._originalUp.applyQuaternion(this.bone.quaternion).normalize();
     this._updateWorldPosition();
   }
 
@@ -179,7 +182,6 @@ class IKJoint {
 
       this._worldToLocalDirection(direction);
       setQuaternionFromDirection(direction, Y_AXIS, this.bone.quaternion);
-
     } else {
       this.bone.position.copy(position);
     }

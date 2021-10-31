@@ -1,4 +1,4 @@
-import { AxesHelper, Color, ConeBufferGeometry, Math as Math$1, Matrix4, Mesh, MeshBasicMaterial, Object3D, Vector3 } from 'three';
+import { AxesHelper, Color, ConeBufferGeometry, Math as Math$1, Matrix4, Mesh, MeshBasicMaterial, Object3D, Plane, Vector3 } from 'three';
 
 var t1 = new Vector3();
 var t2 = new Vector3();
@@ -43,7 +43,7 @@ function setQuaternionFromDirection(direction, up, target) {
   var el = m1.elements;
   z.copy(direction);
   x.crossVectors(up, z);
-  if (x.lengthSq() === 0) {
+  if (x.lengthSq() == 0) {
     if (Math.abs(up.z) === 1) {
       z.x += 0.0001;
     } else {
@@ -363,11 +363,14 @@ var IKJoint = function () {
     this.bone = bone;
     this.distance = 0;
     this._originalDirection = new Vector3();
+    this._originalHinge = new Vector3();
     this._direction = new Vector3();
     this._worldPosition = new Vector3();
     this._isSubBase = false;
     this._subBasePositions = null;
     this.isIKJoint = true;
+    this._originalUp = new Vector3(0, 1, 0);
+    this._originalUp.applyQuaternion(this.bone.quaternion).normalize();
     this._updateWorldPosition();
   }
   createClass(IKJoint, [{
@@ -549,6 +552,7 @@ var IKChain = function () {
       }
       else {
           var previousJoint = this.joints[this.joints.length - 2];
+          var previousPreviousJoint = this.joints[this.joints.length - 3];
           previousJoint._updateMatrixWorld();
           previousJoint._updateWorldPosition();
           joint._updateWorldPosition();
@@ -561,6 +565,9 @@ var IKChain = function () {
           var direction = previousJoint._getWorldDirection(joint);
           previousJoint._originalDirection = new Vector3().copy(direction);
           joint._originalDirection = new Vector3().copy(direction);
+          if (previousPreviousJoint) {
+            previousJoint._originalHinge = previousJoint._worldToLocalDirection(previousJoint._originalDirection.clone().cross(previousPreviousJoint._originalDirection).normalize());
+          }
           this.totalLengths += distance;
         }
       if (target) {
@@ -841,6 +848,44 @@ var IK = function () {
     }
   }]);
   return IK;
+}();
+
+var Z_AXIS$1 = new Vector3(0, 0, -1);
+var X_AXIS = new Vector3(1, 0, 0);
+var t1$1 = new Vector3();
+var t2$1 = new Vector3();
+var t3$1 = new Vector3();
+var t4 = new Vector3();
+var RAD2DEG$1 = Math$1.RAD2DEG;
+var IKHingeConstraint = function () {
+  function IKHingeConstraint(angle) {
+    classCallCheck(this, IKHingeConstraint);
+    this.angle = angle;
+    this.rotationPlane = new Plane();
+  }
+  createClass(IKHingeConstraint, [{
+    key: '_apply',
+    value: function _apply(joint) {
+      var direction = new Vector3().copy(joint._getDirection());
+      var parentDirection = joint._localToWorldDirection(t1$1.copy(Z_AXIS$1)).normalize();
+      var rotationPlaneNormal = joint._localToWorldDirection(t2$1.copy(joint._originalHinge)).normalize();
+      this.rotationPlane.normal = rotationPlaneNormal;
+      var projectedDir = this.rotationPlane.projectPoint(direction, new Vector3());
+      var parentDirectionProjected = this.rotationPlane.projectPoint(parentDirection, t3$1);
+      var currentAngle = projectedDir.angleTo(parentDirectionProjected) * RAD2DEG$1;
+      var cross = t4.crossVectors(projectedDir, parentDirectionProjected);
+      if (cross.dot(rotationPlaneNormal) > 0) {
+        currentAngle += 180;
+      }
+      if (currentAngle > this.angle) {
+        parentDirectionProjected.applyAxisAngle(rotationPlaneNormal, this.angle / RAD2DEG$1);
+        joint._setDirection(parentDirectionProjected);
+      } else {
+        joint._setDirection(projectedDir);
+      }
+    }
+  }]);
+  return IKHingeConstraint;
 }();
 
 var BoneHelper = function (_Object3D) {
@@ -1165,7 +1210,8 @@ if (typeof window !== 'undefined' && _typeof(window.THREE) === 'object') {
   window.THREE.IKChain = IKChain;
   window.THREE.IKJoint = IKJoint;
   window.THREE.IKBallConstraint = IKBallConstraint;
+  window.THREE.IKHingeConstraint = IKHingeConstraint;
   window.THREE.IKHelper = IKHelper;
 }
 
-export { IK, IKChain, IKJoint, IKBallConstraint, IKHelper };
+export { IK, IKChain, IKJoint, IKBallConstraint, IKHingeConstraint, IKHelper };
