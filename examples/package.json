@@ -7,6 +7,6 @@
   "license": "MIT",
   "dependencies": {
     "dat.gui": "0.7.6",
-    "three": "0.107.0"
+    "three": "0.137.0"
   }
 }
