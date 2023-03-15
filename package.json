@@ -33,7 +33,7 @@
     "three.js"
   ],
   "peerDependencies": {
-    "three": "*"
+    "three": "^0.125.0"
   },
   "repository": "https://github.com/jsantell/THREE.IK",
   "dependencies": {}

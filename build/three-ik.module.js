@@ -1,4 +1,4 @@
-import { AxesHelper, Color, ConeBufferGeometry, Math as Math$1, Matrix4, Mesh, MeshBasicMaterial, Object3D, Vector3 } from 'three';
+import { AxesHelper, Color, ConeBufferGeometry, MathUtils as Math$1, Matrix4, Mesh, MeshBasicMaterial, Object3D, Vector3 } from 'three';
 
 var t1 = new Vector3();
 var t2 = new Vector3();
