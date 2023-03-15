@@ -1,4 +1,4 @@
-import { Vector3, Math as ThreeMath } from 'three';
+import { Vector3, MathUtils as ThreeMath } from 'three';
 import { transformPoint, getCentroid, getWorldPosition, setQuaternionFromDirection } from './utils.js';
 
 const Z_AXIS = new Vector3(0, 0, 1);
